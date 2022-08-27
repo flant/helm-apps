@@ -1,0 +1,7 @@
+apiVersion: v2
+name: app
+version: 1.0.0
+dependencies:
+- name: helm-apps
+  version: ~1
+  repository: "@helm-apps
