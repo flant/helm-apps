@@ -28,7 +28,7 @@ jobs:
       uses: werf/actions/install@v1.2
     - name: Render
       run: |
-        cd tests && werf render --dev --set "global._includes.apps-defaults=true"
+        cd tests && werf render --dev --set "global._includes.apps-defaults.enabled=true"
     - name: Run chart-releaser
       uses: helm/chart-releaser-action@v1.1.0
       env:
