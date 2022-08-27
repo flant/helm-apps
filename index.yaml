@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  helm-apps:
+  - apiVersion: v2
+    created: "2022-08-27T12:48:58.987626367Z"
+    description: A Helm applications library
+    digest: 824270bec7a49b76af196e0120de7f0680260a5559541499a6789508c0adef87
+    name: helm-apps
+    type: library
+    urls:
+    - https://github.com/flant/helm-apps/releases/download/helm-apps-1.0.0/helm-apps-1.0.0.tgz
+    version: 1.0.0
+generated: "2022-08-27T12:48:58.611630266Z"
