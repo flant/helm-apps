@@ -1,0 +1,14 @@
+stages:
+- validate
+- publish-charts
+
+
+default:
+  tags:
+  - bravo-shared
+
+before_script:
+- set -eo pipefail
+- type trdl && source $(trdl use werf ${WERF_VERSION:-1.2 ea})
+- type werf && source $(werf ci-env gitlab --as-file)
+- werf helm repo add --force-update --username $FOX_PULL --password $FOX_PULL_SECRET bravo-charts https://fox.flant.com/api/v4/projects/933/packages/helm/stable
