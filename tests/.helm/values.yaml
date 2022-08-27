@@ -28,11 +28,9 @@ global:
     ## Конфигурация по умолчанию для CronJob в целом.
     apps-cronjobs-defaultCronJob:
       _include: ["apps-default-library-app"]
-      # CLIENT: ask if this is ok for a default
       concurrencyPolicy: "Forbid"
       successfulJobsHistoryLimit: 1
       failedJobsHistoryLimit: 1
-      # CLIENT: ask if this is ok for a default
       backoffLimit: 0
       priorityClassName:
         prod: "production-high"
@@ -48,7 +46,7 @@ global:
       _include: ["apps-defaults"]
 
     apps-ingresses-defaultIngress:
-      _include: ["apps-default"]
+      _include: ["apps-defaults"]
       class: "nginx"
 
     apps-jobs-defaultJob:
@@ -123,7 +121,7 @@ global:
         headless: true
 
     apps-configmaps-defaultConfigmap:
-      _include: ["apps-default"]
+      _include: ["apps-defaults"]
 
 
 ## Имя чарта. Ниже перечисляются ConfigMaps для развертывания.
