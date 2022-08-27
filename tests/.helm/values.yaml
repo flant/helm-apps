@@ -21,7 +21,7 @@ global:
     apps-defaults:
       enabled: false
     apps-default-library-app:
-      _include: ["apps-default"]
+      _include: ["apps-defaults"]
       # CLIENT: ask if this is ok for a defaul
       imagePullSecrets: |
         - name: registrysecret
