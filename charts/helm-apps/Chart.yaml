@@ -1,0 +1,4 @@
+apiVersion: v2
+name: helm-apps
+type: library
+version: 1.0.0
