@@ -1,2 +1,0 @@
-{{- /* Подключаем библиотеку */}}
-{{- include "apps-utils.init-library" $ }}

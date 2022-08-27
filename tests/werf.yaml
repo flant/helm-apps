@@ -1,5 +1,0 @@
-project: test
-configVersion: 1
----
-image: nginx
-from: nginx

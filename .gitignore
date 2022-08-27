@@ -1,5 +1,0 @@
-.helm/charts/*/charts
-.helm/charts/*.tgz
-**/*/charts
-**.tgz
-/.packages/
