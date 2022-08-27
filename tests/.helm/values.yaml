@@ -45,7 +45,7 @@ global:
           {}
 
     apps-secrets-defaultSecret:
-      _include: ["apps-default"]
+      _include: ["apps-defaults"]
 
     apps-ingresses-defaultIngress:
       _include: ["apps-default"]
