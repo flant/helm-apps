@@ -1,8 +1,11 @@
 apiVersion: v2
 name: tests
 version: 1.0.0
+maintainers:
+  - name: alvnukov
+    email: alexandr.vnukov@flant.com
+    url: https://github.com/alvnukov
 dependencies:
 - name: helm-apps
   repository: "file://../../charts/helm-apps/"
   version: ~1
-

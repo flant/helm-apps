@@ -4,8 +4,4 @@ version: 1.0.0
 dependencies:
 - name: helm-apps
   version: ~1
-  repository: "@bravo-charts"
-
-
-
-
+  repository: "@helm-apps

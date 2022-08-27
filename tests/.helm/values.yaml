@@ -1024,8 +1024,6 @@ apps-stateful:
             content: |
               secretline1
 
-
-
     ## Service приложения.
     # Для связи других приложений и клиентов с этим приложением.
     # https://kubernetes.io/docs/concepts/services-networking/service
@@ -1071,11 +1069,11 @@ apps-stateful:
     verticalPodAutoscaler:
       ## Включить/выключить verticalPodAutoscaler.
       enabled: true
-      ## Выставлять ли resources автоматически, и в каких случаях.
+      # Выставлять ли resources автоматически, и в каких случаях.
       # Для сбора статистики достаточно "updateMode: Off".
       # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#podupdatepolicy_v1_autoscalingk8sio
       updateMode: "Off"
-      ## Настройка автовыставления resources для каждого контейнера по отдельности.
+      # Настройка автовыставления resources для каждого контейнера по отдельности.
       # Пробрасывается как есть в VerticalPodAutoscaler.spec.resourcePolicy.
       # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#verticalpodautoscalerspec_v1_autoscalingk8sio
       resourcePolicy: |
@@ -1181,7 +1179,7 @@ apps-stateless:
       ## Имя контейнера.
       container-1:
         ## Включить/выключить контейнер.
-        #enabled: true
+        # enabled: true
         ## Настройка имени и тега Docker-образа.
         # Использовать образ, собранный с Werf (с динамическим тегом):
         # ---------------------------------------------------------------------------------------
@@ -1481,7 +1479,7 @@ apps-stateless:
           staticTag: "3"
         command: |
           - tail
-  podDisruptionBudget-integer:
+  pod-disruption-budget-integer:
     _include: ["apps-stateless-defaultApp"]
     # enabled: false
     replicas: 2
@@ -1606,7 +1604,7 @@ apps-certificates:
 apps-kafka-strimzi:
   test-kafka:
     kafka:
-      _include: [ "base-defaultApp-stateful" ]
+      _include: ["base-defaultApp-stateful"]
       brokers:
         host:
           _default: kafka-sentry-test-kafka-bootstrap
@@ -1662,9 +1660,9 @@ apps-kafka-strimzi:
           limits:
             memoryMb: 512
         memory: 512Mi
-        _include: [ "base-defaultApp" ]
+        _include: ["base-defaultApp"]
       exporter:
-        _include: [ "base-defaultApp-stateful" ]
+        _include: ["base-defaultApp-stateful"]
         resources:
           requests:
             mcpu: 200
@@ -1672,7 +1670,7 @@ apps-kafka-strimzi:
           limits:
             memoryMb: 128
       entityOperator:
-        _include: [ "base-defaultApp-stateful" ]
+        _include: ["base-defaultApp-stateful"]
         topicOperator:
           resources:
             requests:
@@ -1689,41 +1687,41 @@ apps-kafka-strimzi:
               memoryMb: 256
       topics:
         snuba-commit-log:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         cdc:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         event-replacements:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         event-replacements-legacy:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         events:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
           partitions:
             _default: 1
           replicas:
             _default: 3
         events-subscription-results:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         ingest-attachments:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         ingest-events:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
           partitions:
             _default: 6
         ingest-metrics:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         ingest-sessions:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         ingest-transactions:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         outcomes:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         snuba-queries:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
         transactions-subscription-results:
-          _include: [ "default-kafkaTopic" ]
+          _include: ["default-kafkaTopic"]
       zookeeper:
-        _include: [ "base-defaultApp-stateful" ]
+        _include: ["base-defaultApp-stateful"]
         replicas:
           _default: 1
           prod: 3
@@ -1768,7 +1766,7 @@ fromSecretsEnvVars-test:
     # {{- end}}
     # или использовать существующий тип приложения
     type: apps-stateless
-  app-for-test-fromSecretsEnvVars:
+  app-for-test-from-secrets-env-vars:
     _include: ["apps-stateless-defaultApp"]
     # werfWeight задает порядок выкатки приложений добавляя аннотацию werf.io/weight: "NUM"
     # аннотация добавляется на все автоматически связанные с приложением ресурсы
@@ -1792,7 +1790,7 @@ fromSecretsEnvVars-test:
 apps-dex-clients:
   app-auth:
     _include: ["default-library-app"]
-    redirectURIs:  test.url
+    redirectURIs: test.url
 
 ingress-with-dexAuth:
   __GroupVars__:
@@ -1866,4 +1864,3 @@ test-common-group-hook:
             resources: ["prometheuses/http"]
             resourceNames: ["main", "longterm"]
             verbs: ["get"]
-
