@@ -1,0 +1,49 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  release:
+    runs-on: self-hosted
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+    - name: Set lib version
+      run: |
+        LIB_VERSION=$(sed -n '/version/{s/version: //;p;}' charts/helm-apps/Chart.yaml)
+        sed -i 's/_FLANT_APPS_LIBRARY_VERSION_/'${LIB_VERSION}'/' charts/helm-apps/templates/_apps-version.tpl
+
+    - name: Install werf CLI
+      with:
+        channel: ea
+      uses: werf/actions/install@v1.2
+
+    - name: Render
+      run: |
+        source $(werf ci-env github --as-file)
+        pushd tests && werf render --validate --dev --set "global._includes.apps-defaults.enabled=true"
+        popd
+
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+      with:
+        version: v3.8.1
+
+    - name: Run chart-releaser
+      uses: helm/chart-releaser-action@v1.4.0
+      with:
+        charts_dir: charts
+        config: cr.yaml
+      env:
+        CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

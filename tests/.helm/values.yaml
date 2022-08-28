@@ -1,0 +1,1914 @@
+global:
+  ci_url: example.com
+  ## Альтернатива ограниченным yaml-алиасам Helm'а. Даёт возможность не дублировать одну и ту же конфигурацию много раз.
+  #
+  # Здесь, в "global._includes", объявляются блоки конфигурации, которые потом можно использовать в любых values-файлах.
+  # Пример подтягивания этих блоков конфигурации в репозитории приложения:
+  # -----------------------------------------------------------------------------------------------
+  # .helm/values.yaml:
+  # -----------------------------------------------------------------------------------------------
+  # apps-cronjobs:
+  #   cronjob-1:
+  #     _include: ["apps-cronjobs-defaultCronJob"]
+  #     backoffLimit: 1
+  # -----------------------------------------------------------------------------------------------
+  #
+  # В примере выше конфигурация из include-блока "apps-cronjobs-defaultCronJob" развернётся на уровне
+  # apps-cronjobs.cronjob-1, а потом поверх развернувшейся конфигурации применится параметр "backoffLimit: 1",
+  # при необходимости перезаписав параметр "backoffLimit" из include-блока.
+  #
+  # Подробнее: https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flexpandincludesinvalues-function
+  _includes:
+    apps-defaults:
+      enabled: false
+    apps-default-library-app:
+      _include: ["apps-defaults"]
+      # CLIENT: ask if this is ok for a defaul
+      imagePullSecrets: |
+        - name: registrysecret
+    ## Конфигурация по умолчанию для CronJob в целом.
+    apps-cronjobs-defaultCronJob:
+      _include: ["apps-default-library-app"]
+      concurrencyPolicy: "Forbid"
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 1
+      backoffLimit: 0
+      priorityClassName:
+        prod: "production-high"
+      restartPolicy: "Never"
+      startingDeadlineSeconds: 60
+      verticalPodAutoscaler:
+        enabled: true
+        updateMode: "Off"
+        resourcePolicy: |
+          {}
+
+    apps-secrets-defaultSecret:
+      _include: ["apps-defaults"]
+
+    apps-ingresses-defaultIngress:
+      _include: ["apps-defaults"]
+      class: "nginx"
+
+    apps-jobs-defaultJob:
+      _include: ["apps-default-library-app"]
+      backoffLimit: 0
+      priorityClassName:
+        prod: "production-high"
+      restartPolicy: "Never"
+      verticalPodAutoscaler:
+        enabled: true
+        updateMode: "Off"
+        resourcePolicy: |
+          {}
+
+    apps-stateful-defaultApp:
+      _include: ["apps-default-library-app"]
+      revisionHistoryLimit: 3
+      terminationGracePeriodSeconds:
+        _default: 30
+        prod: 60
+      affinity: |
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels: {{ include "fl.generateSelectorLabels" (list $ . .name) | nindent 22 }}
+              topologyKey: kubernetes.io/hostname
+            weight: 10
+      priorityClassName:
+        prod: "production-medium"
+      podDisruptionBudget:
+        enabled: true
+        maxUnavailable: "15%"
+      verticalPodAutoscaler:
+        enabled: true
+        updateMode: "Off"
+      service:
+        enabled: false
+        name: "{{ $.CurrentApp.name }}"
+        headless: true
+
+    apps-stateless-defaultApp:
+      _include: ["apps-default-library-app"]
+      revisionHistoryLimit: 3
+      strategy:
+        _default: |
+          rollingUpdate:
+            maxSurge: 20%
+            maxUnavailable: 50%
+          type: RollingUpdate
+        prod: |
+          rollingUpdate:
+            maxSurge: 20%
+            maxUnavailable: 25%
+          type: RollingUpdate
+      priorityClassName:
+        prod: "production-medium"
+      podDisruptionBudget:
+        enabled: true
+        maxUnavailable: "15%"
+      verticalPodAutoscaler:
+        enabled: true
+        updateMode: "Off"
+        resourcePolicy: |
+          {}
+      horizontalPodAutoscaler:
+        enabled: false
+      service:
+        enabled: false
+        name: "{{ $.CurrentApp.name }}"
+
+    apps-configmaps-defaultConfigmap:
+      _include: ["apps-defaults"]
+
+
+## Имя чарта. Ниже перечисляются ConfigMaps для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-configmaps:
+  ## Имя первого ConfigMap'а.
+  configmap-1:
+    _include: ["apps-configmaps-defaultConfigmap"]
+    ## Включить/выключить создание ConfigMap'а.
+    # enabled: false
+    ## Содержание ConfigMap'а. Файлы конфигурации, пробрасываемые в контейнеры.
+    # Пробрасывается как есть в ConfigMap.data.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#configmap-v1-core
+    data: |
+      nginx.conf2: |
+        configline1
+        configline2
+      something.conf: |
+        configline1
+    ## Содержание ConfigMap'а. Несекретные переменные окружения, пробрасываемые в контейнеры.
+    # По итогу пробросится в ConfigMap.data.
+    # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
+    envVars:
+      TEST1: "val1"
+      TEST2: "val2"
+
+## Имя чарта. Ниже перечисляются CronJob'ы для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-cronjobs:
+  ## Имя первой CronJob. Используется в основном для генерации имён ресурсов.
+  cronjob-1:
+    _include: ["apps-cronjobs-defaultCronJob"]
+    ## Включить/выключить CronJob и создаваемые с ней ресурсы.
+    # Здесь включено напрямую через Values только для того, чтобы работал линт перед публикацией чартов.
+    # В репозитории приложения этой строки быть не должно, вместо этого CronJob'а включается через GitLab CI.
+    ## Дополнительные аннотации для CronJob/Job/Pod.
+    # Пробрасываются как есть в CronJob.metadata.annotations, CronJob.spec.jobTemplate.metadata.annotations
+    # и CronJob.spec.jobTemplate.spec.template.metadata.annotations.
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    annotations: |
+      testAnnotation: "testVal"
+    ## Расписание запуска CronJob'ы в cron-формате.
+    # https://en.wikipedia.org/wiki/Cron#Overview
+    schedule: "0 * * * *"
+    ## Разрешение параллельных запусков Job'ы.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#cronjobspec-v1beta1-batch
+    concurrencyPolicy: "Allow"
+    ## Сколько успешно завершенных Jobs и их Pod'ов хранить.
+    # Можно уменьшить, чтобы не захламлять неймспейс старыми Pod'ами.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#cronjobspec-v1beta1-batch
+    successfulJobsHistoryLimit: 1
+    ## Сколько неудачно завершенных Jobs и их Pod'ов хранить.
+    # Можно уменьшить, чтобы не захламлять неймспейс старыми Pod'ами.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#cronjobspec-v1beta1-batch
+    failedJobsHistoryLimit: 1
+    ## Пометить Job как Failed если она не запустилась в течение указанного количества секунд
+    # после запланированного времени запуска.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#cronjobspec-v1beta1-batch
+    startingDeadlineSeconds: 60
+    ## Лимит на попытки перезапуска CronJob'ы, если она завершается с ошибкой.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#jobspec-v1-batch
+    backoffLimit: 0
+    ## Ограничение времени выполнения CronJob'ы, после чего она будет принудительно завершена.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#jobspec-v1-batch
+    activeDeadlineSeconds: 1800
+    ## Имена Secret'ов, в которых хранятся credentials для скачивания Docker-образов из Docker registry.
+    # Пробрасываются как есть в CronJob.spec.jobTemplate.spec.template.spec.imagePullSecrets.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    imagePullSecrets: |
+      - name: registrysecret
+    ## Правила для шедулинга Pod'ов.
+    # Пробрасываются как есть в CronJob.spec.jobTemplate.spec.template.spec.affinity.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#affinity-v1-core
+    affinity: |
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchLabels: {{- include "fl.generateLabels" (list $ . $.CurrentApp.name) | nindent 22 }}
+            topologyKey: kubernetes.io/hostname
+          weight: 10
+    ## Разрешить шедулинг Pod'ов на tainted Nodes.
+    # Пробрасываются как есть в CronJob.spec.jobTemplate.spec.template.spec.tolerations.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#toleration-v1-core
+    tolerations: |
+      - key: something
+        operator: Equal
+        value: somethingelse
+    ## Приоритет Pod'ов при шедулинге.
+    # При недостатке ресурсов на ноде или в кластере могут удалиться/пересоздасться Pod'ы с более низким приоритетом.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    priorityClassName: "production-medium"
+    ## Пытаться ли перезапускать контейнеры, если они не поднимутся.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    restartPolicy: "Never"
+    ## Volumes, которые можно примонтировать в контейнеры CronJob'ы.
+    # Монтирование происходит ниже, в (init)containers.volumeMounts.
+    # Пробрасываются как есть в CronJob.spec.jobTemplate.spec.template.spec.volumes.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volume-v1-core
+    volumes: |
+      - name: cache-volume
+        emptyDir: {}
+
+    ## Список контейнеров CronJob'ы. Можно указать несколько.
+    containers:
+      ## Имя контейнера.
+      container-1:
+        ## Включить/выключить контейнер.
+        enabled: true
+        ## Настройка имени и тега Docker-образа.
+        # Использовать образ, собранный с Werf (с динамическим тегом):
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "main"
+        #   generateSignatureBasedTag: true
+        # ---------------------------------------------------------------------------------------
+        # Использовать обычный образ со статическим тегом:
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "alpine"
+        #   staticTag: "3"
+        # ---------------------------------------------------------------------------------------
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerimagequoted-template
+        image:
+          name: "alpine"
+          staticTag: "3"
+        ## Команда, запускаемая при старте контейнера.
+        # Пробрасывается как есть в CronJob.spec.jobTemplate.spec.template.spec.containers.command.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        command: |
+          - tail
+        ## Аргументы для команды, запускаемой при старте контейнера.
+        # Пробрасываются как есть в CronJob.spec.jobTemplate.spec.template.spec.containers.args.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        args: |
+          - -f
+          - /dev/null
+        ## Несекретные переменные окружения контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
+        envVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Секретные переменные окружения контейнера.
+        # Автоматически создадут Secret с указанными переменными окружения и примонтируют и пробросят их в контейнер.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgenerateconfigmapenvvars-template
+        secretEnvVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Пробросить переменные окружения из ConfigMap или Secret в контейнер.
+        # Пробрасывается как есть в CronJob.spec.jobTemplate.spec.template.spec.containers.envFrom.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#envfromsource-v1-core
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        ## Ресурсы контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerresources-template
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        ## Хуки, отрабатывающие при запуске или остановке контейнера.
+        # Если приложение не может корректно завершить работу само при получении STOPSIGNAL (обычно TERM),
+        # то здесь можно указать команду, которая gracefully завершит ваше приложение.
+        # Пробрасывается как есть в CronJob.spec.jobTemplate.spec.template.spec.containers.lifecycle.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#lifecycle-v1-core
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        ## Примонтировать volume в контейнер.
+        # Перед монтированием volume его надо добавить в параметр "volumes:" выше.
+        # Пробрасывается как есть в CronJob.spec.jobTemplate.spec.template.spec.containers.volumeMounts.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        ## Несекретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут ConfigMaps и примонтируют их в контейнер по указанному пути.
+        configFiles:
+          ## Имя первого конфигурационного файла.
+          nginx.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/nginx/nginx.conf
+            ## Содержание конфигурационного файла.
+            # Пробрасывается как есть в ConfigMap.data.<Имя файла>.
+            content: |
+              configline1
+              configline2
+        ## Секретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут Secrets и примонтируют их в контейнер по указанному пути.
+        secretConfigFiles:
+          ## Имя первого конфигурационного файла.
+          secret.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/secret.conf
+            # Автоматически сконвертируется в base64 и пробросится в Secret.data.<Имя файла>.
+            content: |
+              secretline1
+              secretline2
+
+    ## Список инит-контейнеров CronJob'ы. Можно указать несколько.
+    # Конфигурация доступных параметров идентична конфигурации containers, описанной выше ^^
+    initContainers:
+      init-container-1:
+        enabled: true
+        image:
+          name: "alpine"
+          staticTag: "3"
+        command: |
+          - tail
+        args: |
+          - -f
+          - /dev/null
+        envVars:
+          TEST1: "val1"
+        secretEnvVars:
+          TEST1: "val1"
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        configFiles:
+          nginx.conf:
+            mountPath: /etc/nginx/nginx.conf
+            content: |
+              configline1
+        secretConfigFiles:
+          secret.conf:
+            mountPath: /etc/secret.conf
+            content: |
+              secretline1
+
+    ## Сбор статистики по потреблению ресурсов контейнеров и (опционально) автоматическое выставление resources.
+    # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
+    verticalPodAutoscaler:
+      ## Включить/выключить verticalPodAutoscaler.
+      enabled: true
+      ## Выставлять ли resources автоматически, и в каких случаях.
+      # Для сбора статистики достаточно "updateMode: Off".
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#podupdatepolicy_v1_autoscalingk8sio
+      updateMode: "Initial"
+      ## Настройка автовыставления resources для каждого контейнера по отдельности.
+      # Пробрасывается как есть в VerticalPodAutoscaler.spec.resourcePolicy.
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#verticalpodautoscalerspec_v1_autoscalingk8sio
+      resourcePolicy: |
+        containerPolicies:
+        - containerName: "some-container"
+          mode: "Off"
+
+## Имя чарта. Ниже перечисляются Ingress'ы для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-ingresses:
+  ## Имя первого Ingress.
+  ingress-1:
+    _include: ["apps-ingresses-defaultIngress"]
+    ## Включить/выключить Ingress.
+    # В репозитории приложения этой строки быть не должно, вместо этого Ingress включается через GitLab CI.
+    # enabled: false
+    ## Дополнительные аннотации для Ingress.
+    # Пробрасываются как есть в Ingress.metadata.annotations.
+    # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations
+    annotations: |
+      nginx.ingress.kubernetes.io/auth-url: example.org
+    ## Ingress-класс.
+    # Пробрасывается в аннотацию "kubernetes.io/ingress.class".
+    # https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+    class: "nginx"
+    ## Домен Ingress'а.
+    # Пробрасывается как есть в Ingress.spec.rules.host.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#ingressrule-v1-networking-k8s-io
+    host: "example.org"
+    ## Сопоставление HTTP-путей и Service'ов.
+    # Пробрасывается как есть в Ingress.spec.rules.http.paths.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#httpingresspath-v1-networking-k8s-io
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testService
+            port:
+              number: 80
+    ## Добавляет обработку tls а также включает создание Certificate
+    # Делает магию Certificate без параметров. они берутся из других полей
+    tls:
+      enabled: true
+      ## Переопределяет Ingress.spec.tls.secretName
+      # Убирает автоматическое создание Certificate
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#ingresstls-v1-networking-k8s-io
+      secret_name: "test"
+
+  ingress-2:
+    _include: ["apps-ingresses-defaultIngress"]
+    class: "nginx"
+    host: "example.org"
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testService
+            port:
+              number: 80
+    tls:
+      enabled: false
+  ingress-3:
+    _include: ["apps-ingresses-defaultIngress"]
+    class: "nginx"
+    host: "example.org"
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testService
+            port:
+              number: 80
+    tls:
+      enabled: true
+  ingress-4:
+    _include: ["apps-ingresses-defaultIngress"]
+    class: "nginx"
+    ingressClassName: "nginx"
+    host: "example.org"
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testService
+            port:
+              number: 80
+  # Приложение из примера в документации
+  nginx:
+    _include: ["apps-ingresses-defaultIngress"]
+    host:  '{{ $.Values.global.ci_url }}'
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 80
+    tls:
+      enabled: true
+
+## Имя чарта. Ниже перечисляются Job'ы для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-jobs:
+  ## Имя первой Job. Используется в основном для генерации имён ресурсов.
+  job-1:
+    _include: ["apps-jobs-defaultJob"]
+    ## Включить/выключить Job и создаваемые с ней ресурсы.
+    # В репозитории приложения этой строки быть не должно, вместо этого Job'а включается через GitLab CI.
+    # enabled: false
+    randomName: true
+    # alwaysRestart добавляет перременную в FL_APP_ALWAYS_RESTART контейнеры приложения с
+    # рандомным значением
+    alwaysRestart: true
+    werfWeight:
+      _default: -10
+      production: 0
+    ## Дополнительные аннотации для Job/Pod.
+    # Пробрасываются как есть в Job.metadata.annotations и Job.spec.template.metadata.annotations.
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    annotations: |
+      testAnnotation: "testVal"
+    ## Лимит на попытки перезапуска Job'ы, если она завершается с ошибкой.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#jobspec-v1-batch
+    backoffLimit: 0
+    ## Ограничение времени выполнения Job'ы, после чего она будет принудительно завершена.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#jobspec-v1-batch
+    activeDeadlineSeconds: 1800
+    ## Имена Secret'ов, в которых хранятся credentials для скачивания Docker-образов из Docker registry.
+    # Пробрасываются как есть в Job.spec.template.spec.imagePullSecrets.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    imagePullSecrets: |
+      - name: registrysecret
+    ## Правила для шедулинга Pod'ов.
+    # Пробрасываются как есть в Job.spec.template.spec.affinity.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#affinity-v1-core
+    affinity: |
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchLabels: {{- include "fl.generateLabels" (list $ . $.CurrentApp.name) | nindent 22 }}
+            topologyKey: kubernetes.io/hostname
+          weight: 10
+    ## Разрешить шедулинг Pod'ов на tainted Nodes.
+    # Пробрасываются как есть в Job.spec.template.spec.tolerations.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#toleration-v1-core
+    tolerations: |
+      - key: something
+        operator: Equal
+        value: somethingelse
+    ## Приоритет Pod'ов при шедулинге.
+    # При недостатке ресурсов на ноде или в кластере могут удалиться/пересоздасться Pod'ы с более низким приоритетом.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    priorityClassName: "production-medium"
+    ## Пытаться ли перезапускать контейнеры, если они не поднимутся.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    restartPolicy: "Never"
+    ## Volumes, которые можно примонтировать в контейнеры Job'ы.
+    # Монтирование происходит ниже, в (init)containers.volumeMounts.
+    # Пробрасываются как есть в Job.spec.template.spec.volumes.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volume-v1-core
+    volumes: |
+      - name: cache-volume
+        emptyDir: {}
+
+    ## Список контейнеров Job'ы. Можно указать несколько.
+    containers:
+      ## Имя контейнера.
+      container-1:
+        ## Включить/выключить контейнер. Контейнеры включены по-умолчанию
+        # enabled: true
+        ## Настройка имени и тега Docker-образа.
+        # Использовать образ, собранный с Werf (с динамическим тегом):
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "main"
+        #   generateSignatureBasedTag: true
+        # ---------------------------------------------------------------------------------------
+        # Использовать обычный образ со статическим тегом:
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "alpine"
+        #   staticTag: "3"
+        # ---------------------------------------------------------------------------------------
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerimagequoted-template
+        image:
+          name: "alpine"
+          staticTag: "3"
+        ## Команда, запускаемая при старте контейнера.
+        # Пробрасывается как есть в Job.spec.template.spec.containers.command.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        command: |
+          - tail
+        ## Аргументы для команды, запускаемой при старте контейнера.
+        # Пробрасываются как есть в Job.spec.template.spec.containers.args.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        args: |
+          - -f
+          - /dev/null
+        ## Несекретные переменные окружения контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
+        envVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Секретные переменные окружения контейнера.
+        # Автоматически создадут Secret с указанными переменными окружения и примонтируют и пробросят их в контейнер.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgenerateconfigmapenvvars-template
+        secretEnvVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Пробросить переменные окружения из ConfigMap или Secret в контейнер.
+        # Пробрасывается как есть в Job.spec.template.spec.containers.envFrom.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#envfromsource-v1-core
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        ## Ресурсы контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerresources-template
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        ## Хуки, отрабатывающие при запуске или остановке контейнера.
+        # Если приложение не может корректно завершить работу само при получении STOPSIGNAL (обычно TERM),
+        # то здесь можно указать команду, которая gracefully завершит ваше приложение.
+        # Пробрасывается как есть в Job.spec.template.spec.containers.lifecycle.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#lifecycle-v1-core
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        ## Примонтировать volume в контейнер.
+        # Перед монтированием volume его надо добавить в параметр "volumes:" выше.
+        # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        ## Несекретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут ConfigMaps и примонтируют их в контейнер по указанному пути.
+        configFiles:
+          ## Имя первого конфигурационного файла.
+          nginx.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/nginx/nginx.conf
+            ## Содержание конфигурационного файла.
+            # Пробрасывается как есть в ConfigMap.data.<Имя файла>.
+            content: |
+              configline1
+              configline2
+        ## Секретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут Secrets и примонтируют их в контейнер по указанному пути.
+        secretConfigFiles:
+          ## Имя первого конфигурационного файла.
+          secret.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/secret.conf
+            # Автоматически сконвертируется в base64 и пробросится в Secret.data.<Имя файла>.
+            content: |
+              secretline1
+              secretline2
+
+    ## Список инит-контейнеров Job'ы. Можно указать несколько.
+    # Конфигурация доступных параметров идентична конфигурации containers, описанной выше ^^
+    initContainers:
+      init-container-1:
+        # enabled: true
+        image:
+          name: "alpine"
+          staticTag: "3"
+        command: |
+          - tail
+        args: |
+          - -f
+          - /dev/null
+        envVars:
+          TEST1: "val1"
+        secretEnvVars:
+          TEST1: "val1"
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        configFiles:
+          nginx.conf:
+            mountPath: /etc/nginx/nginx.conf
+            content: |
+              configline1
+        secretConfigFiles:
+          secret.conf:
+            mountPath: /etc/secret.conf
+            content: |
+              secretline1
+
+    ## Сбор статистики по потреблению ресурсов контейнеров и (опционально) автоматическое выставление resources.
+    # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
+    verticalPodAutoscaler:
+      ## Включить/выключить verticalPodAutoscaler.
+      enabled: true
+      ## Выставлять ли resources автоматически, и в каких случаях.
+      # Для сбора статистики достаточно "updateMode: Off".
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#podupdatepolicy_v1_autoscalingk8sio
+      updateMode: "Initial"
+      ## Настройка автовыставления resources для каждого контейнера по отдельности.
+      # Пробрасывается как есть в VerticalPodAutoscaler.spec.resourcePolicy.
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#verticalpodautoscalerspec_v1_autoscalingk8sio
+      resourcePolicy: |
+        containerPolicies:
+        - containerName: "some-container"
+          mode: "Off"
+
+## Имя чарта. Ниже перечисляются Secrets для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-secrets:
+  ## Имя первого Secret'а.
+  secret-1:
+    _include: ["apps-secrets-defaultSecret"]
+    ## Включить/выключить создание Secret'а.
+    ## Тип Secret'а.
+    # Если не указано, "Opaque" выставится автоматически (обычно это то, что нужно).
+    # https://kubernetes.io/docs/concepts/configuration/secret/#secret-types
+    type: "Opaque"
+    ## Содержание Secret'а. Обычно файлы конфигурации, пробрасываемые в контейнеры.
+    # Автоматически сконвертируется в base64 и пробросится в Secret.data.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#secret-v1-core
+    data:
+      secret.conf: |
+        plainTextLine1
+        plainTextLine2
+      secret2.conf: |
+        plainTextLine1
+    ## Содержание Secret'а. Секретные переменные окружения, пробрасываемые в контейнеры.
+    # По итогу пробросится в Secret.data.
+    # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
+    envVars:
+      TEST1: "val1"
+      TEST2: "val2"
+
+## Имя чарта. Ниже перечисляются приложения для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-stateful:
+  ## Имя первого приложения. Используется в основном для генерации имён ресурсов.
+  app-1:
+    _include: ["apps-stateful-defaultApp"]
+    # werfWeight задает порядок выкатки приложений добавляя аннотацию werf.io/weight: "NUM"
+    # аннотация добавляется на все автоматически связанные с приложением ресурсы
+    # подробнее: https://ru.werf.io/documentation/v1.2/reference/deploy_annotations.html#resource-weight
+    werfWeight: -30
+    ## Включить/выключить приложение.
+    # В репозитории приложения этой строки быть не должно, вместо этого приложение включается через GitLab CI.
+    # enabled: false
+    ## Дополнительные аннотации для Deployment/Pod.
+    # Пробрасываются как есть в Deployment.metadata.annotations и Deployment.spec.template.metadata.annotations.
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    annotations: |
+      testAnnotation: "testVal"
+    ## Дополнительные лейблы для всех ресурсов, создаваемых чартом.
+    # По умолчанию уже генерируется стандартный набор лейблов, поэтому указывать дополнительные обычно не требуется.
+    # Пробрасываются как есть в metadata.labels всех ресурсов.
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+    labels: |
+      testLabel: "testVal"
+    ## Количество реплик Deployment'а.
+    # Если включен HorizontalPodAutoscaler, то эта настройка не применяется. Вместо неё используйте
+    # minReplicas и maxReplicas из секции horizontalPodAutoscaler ниже.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#deploymentspec-v1-apps
+    replicas: 2
+    ## Лимит количества старых ReplicaSets, остающихся после обновлений Deployment'а.
+    # Их уменьшение делает "werf cleanup" более эффективным.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#deploymentspec-v1-apps
+    revisionHistoryLimit: 3
+    ## Стратегия обновлений Deployment'а.
+    # Пробрасывается как есть в Deployment.spec.strategy.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#deploymentstrategy-v1-apps
+    strategy: |
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    ## Имена Secret'ов, в которых хранятся credentials для скачивания Docker-образов из Docker registry.
+    # Пробрасываются как есть в Deployment.spec.template.spec.imagePullSecrets.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    imagePullSecrets: |
+      - name: registrysecret
+    ## Лимит времени на завершение работы приложения при остановке Pod'а.
+    # После истечения лимита приложению посылается KILL-сигнал.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    terminationGracePeriodSeconds: 30
+    ## Правила для шедулинга Pod'ов.
+    # Пробрасываются как есть в Deployment.spec.template.spec.affinity.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#affinity-v1-core
+    affinity: |
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchLabels: {{ include "fl.generateLabels" (list $ . $.CurrentApp.name) | nindent 22 }}
+            topologyKey: kubernetes.io/hostname
+          weight: 10
+    ## Чтобы Pod зашедулился на Node, у Node должны быть все перечисленные лейблы.
+    # Пробрасываются как есть в Deployment.spec.template.spec.nodeSelector.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    nodeSelector: |
+      label1: value1
+      label2: value2
+    ## Разрешить шедулинг Pod'ов на tainted Nodes.
+    # Пробрасываются как есть в Deployment.spec.template.spec.tolerations.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#toleration-v1-core
+    tolerations: |
+      - key: something
+        operator: Equal
+        value: somethingelse
+    ## hostNetwork
+    # https://v1-20.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podspec-v1-core
+    hostNetwork: true
+    ## dnsPolicy
+    # https://v1-20.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podspec-v1-core
+    dnsPolicy: ClusterFirstWithHostNet
+    ## Приоритет Pod'ов при шедулинге.
+    # При недостатке ресурсов на ноде или в кластере могут удалиться/пересоздасться Pod'ы с более низким приоритетом.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    priorityClassName: "production-medium"
+    ## Volumes, которые можно примонтировать в контейнеры приложения.
+    # Монтирование происходит ниже, в (init)containers.volumeMounts.
+    # Пробрасываются как есть в Deployment.spec.template.spec.volumes.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volume-v1-core
+    volumes: |
+      - name: cache-volume
+        emptyDir: {}
+    persistantVolumes:
+      data2:
+        mountPath: /data2
+        class: localStorage
+        size: 1Gi
+
+    ## Список контейнеров приложения. Можно указать несколько.
+    containers:
+      ## Имя контейнера.
+      container-1:
+        ## Включить/выключить контейнер.
+        ## Настройка имени и тега Docker-образа.
+        # Использовать образ, собранный с Werf (с динамическим тегом):
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "backend"
+        # ---------------------------------------------------------------------------------------
+        # Использовать обычный образ со статическим тегом:
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "alpine"
+        #   staticTag: "3"
+        # ---------------------------------------------------------------------------------------
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerimagequoted-template
+        image:
+          name: "alpine"
+          staticTag: "3"
+        ## Команда, запускаемая при старте контейнера.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.command.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        command: |
+          - tail
+        ## Аргументы для команды, запускаемой при старте контейнера.
+        # Пробрасываются как есть в Deployment.spec.template.spec.containers.args.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        args: |
+          - -f
+          - /dev/null
+        ## Открытые порты контейнера.
+        # Пробрасываются как есть в Deployment.spec.template.spec.containers.ports.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#containerport-v1-core
+        ports: |
+          - name: http
+            containerPort: 80
+        ## Несекретные переменные окружения контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
+        envs:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Секретные переменные окружения контейнера.
+        # Автоматически создадут Secret с указанными переменными окружения и примонтируют и пробросят их в контейнер.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgenerateconfigmapenvvars-template
+        secretEnvVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Пробросить переменные окружения из ConfigMap или Secret в контейнер.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.envFrom.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#envfromsource-v1-core
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        ## Ресурсы контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerresources-template
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        ## Liveness-проба.
+        # Контейнер перезагружается, если она перестаёт работать.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.livenessProbe.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#probe-v1-core
+        livenessProbe: |
+          httpGet:
+            path: /liveness
+            port: 80
+        ## Readiness-проба.
+        # На контейнер перестаёт поступать трафик через Service/Ingress, если она перестаёт работать.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.readinessProbe.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#probe-v1-core
+        readinessProbe: |
+          httpGet:
+            path: /readiness
+            port: 80
+        ## Startup-проба.
+        # Startup-проба начинает работать при старте контейнера. Если она единожды отработает успешно,
+        # то она перестает работать, а вместе неё включаются в работу Liveness и Readiness-пробы. Но
+        # если Startup-проба при старте так и не отработает успешно, то контейнер будет перезагружен.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.startupProbe.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#probe-v1-core
+        startupProbe: |
+          httpGet:
+            path: /startup
+            port: 80
+        ## Хуки, отрабатывающие при запуске или остановке контейнера.
+        # Если приложение не может корректно завершить работу само при получении STOPSIGNAL (обычно TERM),
+        # то здесь можно указать команду, которая gracefully завершит ваше приложение.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.lifecycle.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#lifecycle-v1-core
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        ## Примонтировать volume в контейнер.
+        # Перед монтированием volume его надо добавить в параметр "volumes:" выше.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.volumeMounts.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        ## Несекретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут ConfigMaps и примонтируют их в контейнер по указанному пути.
+        configFiles:
+          ## Имя первого конфигурационного файла.
+          nginx.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/nginx/nginx.conf
+            ## Содержание конфигурационного файла.
+            # Пробрасывается как есть в ConfigMap.data.<Имя файла>.
+            content: |
+              configline1
+              configline2
+          nginx.conf2:
+            mountPath: /etc/nginx/nginx2.conf
+            ## указывает на имя cm с которой линковать файл в контейнере.
+            name: configmap-1
+        ## Секретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут Secrets и примонтируют их в контейнер по указанному пути.
+        secretConfigFiles:
+          ## Имя первого конфигурационного файла.
+          secret.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/secret.conf
+            # Автоматически сконвертируется в base64 и пробросится в Secret.data.<Имя файла>.
+            content: |
+              secretline1
+              secretline2
+        persistantVolumes:
+          data2:
+            mountPath: /data2
+            class: localStorage
+            size: 1Gi
+
+    ## Список инит-контейнеров приложения. Можно указать несколько.
+    # Конфигурация доступных параметров идентична конфигурации containers, описанная выше ^^
+    initContainers:
+      init-container-1:
+        image:
+          name: "alpine"
+          staticTag: "3"
+        command: |
+          - tail
+        args: |
+          - -f
+          - /dev/null
+        envVars:
+          TEST1: "val1"
+        secretEnvVars:
+          TEST1: "val1"
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+
+        configFiles:
+          nginx.conf:
+            mountPath: /etc/nginx/nginx.conf
+            content: |
+              configline1
+        secretConfigFiles:
+          secret.conf:
+            mountPath: /etc/secret.conf
+            content: |
+              secretline1
+
+    ## Service приложения.
+    # Для связи других приложений и клиентов с этим приложением.
+    # https://kubernetes.io/docs/concepts/services-networking/service
+    service:
+      ## Включить/выключить сервис.
+      enabled: true
+      ## DNS-имя сервиса, а также имя самого сервиса.
+      name: "{{ $.CurrentApp.name }}"
+      ## Дополнительные аннотации.
+      # Пробрасываются как есть в Service.metadata.annotations.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#objectmeta-v1-meta
+      annotations: null
+      ## Дополнительные лейблы для сервиса.
+      # По умолчанию уже генерируется стандартный набор лейблов, поэтому указывать дополнительные обычно не требуется.
+      # Пробрасываются как есть в Service.metadata.labels.
+      # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+      labels: |
+        testLabel: "testVal"
+      ## Headless-сервис (ClusterIP: none)
+      # Позволяет уменьшить нагрузку на кластер при большом количестве сервисов.
+      # https://kubernetes.io/docs/concepts/services-networking/service/#headless-services
+      headless: true
+      ## Настройка связи Service-портов с Deployment-портами.
+      # Пробрасывается как есть в Service.spec.ports.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#serviceport-v1-core
+      ports: |
+        - name: http
+          port: 80
+
+    ## Лимит на удаление подов шедулером.
+    # Работает только для evict'ов Pod'а. При обновлении/рестарте Deployment'а evict'ов не происходит.
+    # Поэтому лимиты при обновлении Deployment'а описываются в отдельном ключе `strategy:` выше.
+    # https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets
+    podDisruptionBudget:
+      ## Включить/выключить podDisruptionBudget.
+      enabled: true
+      ## Максимальное количество недоступных (evicted) Pod'ов.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#poddisruptionbudgetspec-v1beta1-policy
+      maxUnavailable: 1
+
+    ## Сбор статистики по потреблению ресурсов контейнеров и (опционально) автоматическое выставление resources.
+    # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
+    verticalPodAutoscaler:
+      ## Включить/выключить verticalPodAutoscaler.
+      enabled: true
+      # Выставлять ли resources автоматически, и в каких случаях.
+      # Для сбора статистики достаточно "updateMode: Off".
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#podupdatepolicy_v1_autoscalingk8sio
+      updateMode: "Off"
+      # Настройка автовыставления resources для каждого контейнера по отдельности.
+      # Пробрасывается как есть в VerticalPodAutoscaler.spec.resourcePolicy.
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#verticalpodautoscalerspec_v1_autoscalingk8sio
+      resourcePolicy: |
+        containerPolicies:
+        - containerName: "some-container"
+          mode: "Off"
+  stateful-simple:
+    _include: ["apps-stateful-defaultApp"]
+    containers:
+      main:
+        image:
+          name: nginx
+
+## Имя чарта. Ниже перечисляются приложения для развертывания.
+# Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
+# https://helm.sh/docs/topics/charts/#managing-dependencies-with-the-dependencies-field
+apps-stateless:
+  ## Имя первого приложения. Используется в основном для генерации имён ресурсов.
+  app-1:
+    _include: ["apps-stateless-defaultApp"]
+    # werfWeight задает порядок выкатки приложений добавляя аннотацию werf.io/weight: "NUM"
+    # аннотация добавляется на все автоматически связанные с приложением ресурсы
+    # подробнее: https://ru.werf.io/documentation/v1.2/reference/deploy_annotations.html#resource-weight
+    werfWeight: -10
+    ## Включить/выключить приложение.
+    # В репозитории приложения этой строки быть не должно, вместо этого приложение включается через GitLab CI.
+  # enabled: false
+    ## Дополнительные аннотации для Deployment/Pod.
+    # Пробрасываются как есть в Deployment.metadata.annotations и Deployment.spec.template.metadata.annotations.
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    annotations: |
+      testAnnotation: "testVal"
+    ## Дополнительные лейблы для всех ресурсов, создаваемых чартом.
+    # По умолчанию уже генерируется стандартный набор лейблов, поэтому указывать дополнительные обычно не требуется.
+    # Пробрасываются как есть в metadata.labels всех ресурсов.
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+    labels: |
+      testLabel: "testVal"
+    ## Количество реплик Deployment'а.
+    # Если включен HorizontalPodAutoscaler, то эта настройка не применяется. Вместо неё используйте
+    # minReplicas и maxReplicas из секции horizontalPodAutoscaler ниже.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#deploymentspec-v1-apps
+    replicas: 2
+    ## Лимит количества старых ReplicaSets, остающихся после обновлений Deployment'а.
+    # Их уменьшение делает "werf cleanup" более эффективным.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#deploymentspec-v1-apps
+    revisionHistoryLimit: 3
+    ## Стратегия обновлений Deployment'а.
+    # Пробрасывается как есть в Deployment.spec.strategy.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#deploymentstrategy-v1-apps
+    strategy: |
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    ## Имена Secret'ов, в которых хранятся credentials для скачивания Docker-образов из Docker registry.
+    # Пробрасываются как есть в Deployment.spec.template.spec.imagePullSecrets.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    imagePullSecrets: |
+      - name: registrysecret
+    ## Лимит времени на завершение работы приложения при остановке Pod'а.
+    # После истечения лимита приложению посылается KILL-сигнал.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    terminationGracePeriodSeconds: 30
+    ## Правила для шедулинга Pod'ов.
+    # Пробрасываются как есть в Deployment.spec.template.spec.affinity.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#affinity-v1-core
+    affinity: |
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchLabels: {{- include "fl.generateLabels" (list $ . $.CurrentApp.name) | nindent 22 }}
+            topologyKey: kubernetes.io/hostname
+          weight: 10
+    ## Разрешить шедулинг Pod'ов на tainted Nodes.
+    # Пробрасываются как есть в Deployment.spec.template.spec.tolerations.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#toleration-v1-core
+    tolerations: |
+      - key: something
+        operator: Equal
+        value: somethingelse
+    ## hostNetwork
+    # https://v1-20.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podspec-v1-core
+    hostNetwork: true
+    ## dnsPolicy
+    # https://v1-20.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podspec-v1-core
+    dnsPolicy: ClusterFirstWithHostNet
+    ## Приоритет Pod'ов при шедулинге.
+    # При недостатке ресурсов на ноде или в кластере могут удалиться/пересоздасться Pod'ы с более низким приоритетом.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+    priorityClassName: "production-medium"
+    ## Volumes, которые можно примонтировать в контейнеры приложения.
+    # Монтирование происходит ниже, в (init)containers.volumeMounts.
+    # Пробрасываются как есть в Deployment.spec.template.spec.volumes.
+    # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volume-v1-core
+    volumes: |
+      - name: cache-volume
+        emptyDir: {}
+
+    ## Список контейнеров приложения. Можно указать несколько.
+    containers:
+      ## Имя контейнера.
+      container-1:
+        ## Включить/выключить контейнер.
+        # enabled: true
+        ## Настройка имени и тега Docker-образа.
+        # Использовать образ, собранный с Werf (с динамическим тегом):
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "backend"
+        #   generateSignatureBasedTag: true
+        # ---------------------------------------------------------------------------------------
+        # Использовать обычный образ со статическим тегом:
+        # ---------------------------------------------------------------------------------------
+        # image:
+        #   name: "alpine"
+        #   staticTag: "3"
+        # ---------------------------------------------------------------------------------------
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerimagequoted-template
+        image:
+          name: "alpine"
+          staticTag: "3"
+        ## Команда, запускаемая при старте контейнера.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.command.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        command: |
+          - tail
+        ## Аргументы для команды, запускаемой при старте контейнера.
+        # Пробрасываются как есть в Deployment.spec.template.spec.containers.args.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#container-v1-core
+        args: |
+          - -f
+          - /dev/null
+        ## Открытые порты контейнера.
+        # Пробрасываются как есть в Deployment.spec.template.spec.containers.ports.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#containerport-v1-core
+        ports: |
+          - name: http
+            containerPort: 80
+        ## Несекретные переменные окружения контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
+        env: |
+          - name: "APP_ENV_NAME_2"
+            valueFrom:
+              secretKeyRef:
+                name: "secret-1"
+                key: "SECRET_ENV_NAME_2"
+        envVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Секретные переменные окружения контейнера.
+        # Автоматически создадут Secret с указанными переменными окружения и примонтируют и пробросят их в контейнер.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgenerateconfigmapenvvars-template
+        secretEnvVars:
+          TEST1: "val1"
+          TEST2: "val2"
+        ## Пробросить переменные окружения из ConfigMap или Secret в контейнер.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.envFrom.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#envfromsource-v1-core
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        ## Ресурсы контейнера.
+        # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerresources-template
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+            ephemeralStorageMb: 1024
+          limits:
+            mcpu: null
+            memoryMb: 200
+            ephemeralStorageMb: 1024
+        ## Liveness-проба.
+        # Контейнер перезагружается, если она перестаёт работать.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.livenessProbe.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#probe-v1-core
+        livenessProbe: |
+          httpGet:
+            path: /liveness
+            port: 80
+        ## Readiness-проба.
+        # На контейнер перестаёт поступать трафик через Service/Ingress, если она перестаёт работать.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.readinessProbe.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#probe-v1-core
+        readinessProbe: |
+          httpGet:
+            path: /readiness
+            port: 80
+        ## Startup-проба.
+        # Startup-проба начинает работать при старте контейнера. Если она единожды отработает успешно,
+        # то она перестает работать, а вместе неё включаются в работу Liveness и Readiness-пробы. Но
+        # если Startup-проба при старте так и не отработает успешно, то контейнер будет перезагружен.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.startupProbe.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#probe-v1-core
+        startupProbe: |
+          httpGet:
+            path: /startup
+            port: 80
+        ## Хуки, отрабатывающие при запуске или остановке контейнера.
+        # Если приложение не может корректно завершить работу само при получении STOPSIGNAL (обычно TERM),
+        # то здесь можно указать команду, которая gracefully завершит ваше приложение.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.lifecycle.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#lifecycle-v1-core
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        ## Примонтировать volume в контейнер.
+        # Перед монтированием volume его надо добавить в параметр "volumes:" выше.
+        # Пробрасывается как есть в Deployment.spec.template.spec.containers.volumeMounts.
+        # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        ## Несекретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут ConfigMaps и примонтируют их в контейнер по указанному пути.
+        configFiles:
+          ## Имя первого конфигурационного файла.
+          nginx.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/nginx/nginx.conf
+            ## Содержание конфигурационного файла.
+            # Пробрасывается как есть в ConfigMap.data.<Имя файла>.
+            content: |
+              configline1
+              configline2
+          nginx.conf2:
+            mountPath: /etc/nginx/nginx2.conf
+            ## указывает на имя cm с которой линковать файл в контейнере.
+            name: configmap-1
+        ## Секретные конфигурационные файлы контейнера. Можно указывать несколько.
+        # Автоматически создадут Secrets и примонтируют их в контейнер по указанному пути.
+        secretConfigFiles:
+          ## Имя первого конфигурационного файла.
+          secret.conf:
+            ## Путь для монтирования файла в контейнере.
+            # Пробрасывается как есть в Job.spec.template.spec.containers.volumeMounts.mountPath.
+            # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#volumemount-v1-core
+            mountPath: /etc/secret.conf
+            # Автоматически сконвертируется в base64 и пробросится в Secret.data.<Имя файла>.
+            content: |
+              secretline1
+              secretline2
+
+
+    ## Список инит-контейнеров приложения. Можно указать несколько.
+    # Конфигурация доступных параметров идентична конфигурации containers, описанная выше ^^
+    initContainers:
+      init-container-1:
+        image:
+          name: "alpine"
+          staticTag: "3"
+        command: |
+          - tail
+        args: |
+          - -f
+          - /dev/null
+        envVars:
+          TEST1: "val1"
+        secretEnvVars:
+          TEST1: "val1"
+        envFrom: |
+          - configMapRef:
+              name: env-configmap
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 200
+          limits:
+            mcpu: null
+            memoryMb: 200
+        lifecycle: |
+          preStop:
+            exec:
+              command: ["/usr/sbin/nginx", "-s", "quit"]
+        volumeMounts: |
+          - mountPath: /cache
+            name: cache-volume
+        configFiles:
+          nginx.conf:
+            mountPath: /etc/nginx/nginx.conf
+            content: |
+              configline1
+        secretConfigFiles:
+          secret.conf:
+            mountPath: /etc/secret.conf
+            content: |
+              secretline1
+
+
+    ## Service приложения.
+    # Для связи других приложений и клиентов с этим приложением.
+    # https://kubernetes.io/docs/concepts/services-networking/service
+    service:
+      ## Включить/выключить сервис.
+      enabled: true
+      ## DNS-имя сервиса, а также имя самого сервиса.
+      name: "{{ $.CurrentApp.name }}"
+      ## Дополнительные аннотации.
+      # Пробрасываются как есть в Service.metadata.annotations.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#objectmeta-v1-meta
+      annotations: null
+      ## Headless-сервис (ClusterIP: none)
+      # Позволяет уменьшить нагрузку на кластер при большом количестве сервисов.
+      # https://kubernetes.io/docs/concepts/services-networking/service/#headless-services
+      headless: true
+      ## Настройка связи Service-портов с Deployment-портами.
+      # Пробрасывается как есть в Service.spec.ports.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#serviceport-v1-core
+      ports: |
+        - name: http
+          port: 80
+
+    ## Лимит на удаление подов шедулером.
+    # Работает только для evict'ов Pod'а. При обновлении/рестарте Deployment'а evict'ов не происходит.
+    # Поэтому лимиты при обновлении Deployment'а описываются в отдельном ключе `strategy:` выше.
+    # https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets
+    podDisruptionBudget:
+      ## Включить/выключить podDisruptionBudget.
+      enabled: true
+      ## Максимальное количество недоступных (evicted) Pod'ов.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#poddisruptionbudgetspec-v1beta1-policy
+      maxUnavailable: 1
+
+    ## Сбор статистики по потреблению ресурсов контейнеров и (опционально) автоматическое выставление resources.
+    # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
+    verticalPodAutoscaler:
+      ## Включить/выключить verticalPodAutoscaler.
+      enabled: true
+      ## Выставлять ли resources автоматически, и в каких случаях.
+      # Для сбора статистики достаточно "updateMode: Off".
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#podupdatepolicy_v1_autoscalingk8sio
+      updateMode: "Auto"
+      ## Настройка автовыставления resources для каждого контейнера по отдельности.
+      # Пробрасывается как есть в VerticalPodAutoscaler.spec.resourcePolicy.
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler#verticalpodautoscalerspec_v1_autoscalingk8sio
+      resourcePolicy: |
+        containerPolicies:
+        - containerName: "some-container"
+          mode: "Off"
+
+    ## Горизонтальный скейлинг Pod'ов.
+    horizontalPodAutoscaler:
+      ## Включить/выключить horizontalPodAutoscaler.
+      enabled: true
+      ## Не скейлить ниже этого количества реплик.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#horizontalpodautoscalerspec-v2beta2-autoscaling
+      minReplicas: 1
+      ## Не скейлить выше этого количества реплик.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#horizontalpodautoscalerspec-v2beta2-autoscaling
+      maxReplicas: 1
+      ## Поведение при скейлинге.
+      # Пробрасывается как есть в HorizontalPodAutoscaler.spec.behavior.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#horizontalpodautoscalerbehavior-v2beta2-autoscaling
+      behavior: |
+        scaleDown:
+          policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 60
+      ## Конфигурация метрик, по которым скейлить.
+      # Пробрасывается как есть в HorizontalPodAutoscaler.spec.metrics.
+      # https://v1-19.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#metricspec-v2beta2-autoscaling
+      metrics: |
+        - type: Object
+          object:
+            describedObject:
+              apiVersion: v1
+              kind: Service
+              name: {{ include "fl.valueQuoted" (list $ . $.CurrentApp.service.name) }}
+            metric:
+              name: "metric-1"
+            target:
+              type: Value
+              value: 10000m
+
+      ## Кастомные метрики для скейлинга. Можно указывать несколько.
+      # https://early.deckhouse.io/modules/301-prometheus-metrics-adapter/usage.html#скейлинг-пaо-кастомным-метрикам
+      customMetricResources:
+        ## Имя ресурса метрики.
+        metric-1:
+          ## Включить/выключить создание метрики.
+          enabled: true
+          ## Тип кастомной метрики.
+          # https://early.deckhouse.io/modules/301-prometheus-metrics-adapter/cr.html#namespaced-custom-resources
+          kind: "ServiceMetric"
+          ## PromQL-выражение, результат которого и будет метрикой.
+          # Пробрасывается как есть в <kindMetric>.spec.query.
+          # https://early.deckhouse.io/modules/301-prometheus-metrics-adapter/cr.html#namespaced-custom-resources
+          query: 'sum(rate(sidekiq_jobs_enqueued_total{<<.LabelMatchers>>, queue="default"}[1m])) by (<<.GroupBy>>)'
+  # Приложение из примера в документации
+  nginx:
+    _include: ["apps-stateless-defaultApp"]
+    replicas: 1
+    containers:
+      nginx:
+        image:
+          name: nginx
+        ports: |
+          - name: http
+            containerPort: 80
+        configFiles:
+          default.conf:
+            mountPath: /etc/nginx/templates/default.conf.template
+            content: |
+              server {
+                listen         80 default_server;
+                listen         [::]:80 default_server;
+                server_name    {{ $.Values.global.ci_url }} {{ $.Values.global.ci_url }};
+                root           /var/www/{{ $.Values.global.ci_url }};
+                index          index.html;
+                try_files $uri /index.html;
+                location / {
+                  proxy_set_header Authorization "Bearer ${SECRET_TOKEN}";
+                  proxy_pass_header Authorization;
+                  proxy_pass https://backend:3000;
+                }
+              }
+        secretEnvVars:
+          SECRET_TOKEN: "!!!secret-token-for-backend!!!"
+    service:
+      enabled: true
+      ports: |
+        - name: http
+          port: 80
+  minimum-app:
+    _include: ["apps-stateless-defaultApp"]
+    # enabled: false
+    containers:
+      container-1:
+        enabled: true
+        image:
+          name: "alpine"
+          staticTag: "3"
+        command: |
+          - tail
+  pod-disruption-budget-integer:
+    _include: ["apps-stateless-defaultApp"]
+    # enabled: false
+    replicas: 2
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 1
+    containers:
+      container-1:
+        enabled: true
+        image:
+          name: "alpine"
+          staticTag: "3"
+        command: |
+          - tail
+apps-custom-prometheus-rules:
+  test-rule:
+    _include: ["apps-default-library-app"]
+    groups:
+      test-group:
+        alerts:
+          test-alert:
+            isTemplate: false
+            content: |
+              for: 5m
+              expr: sum(kafka_consumergroup_lag{}) by (consumergroup, topic) > 10000
+              labels:
+                severity_level: "4"
+              annotations:
+                description: "Too many unprocessed messages in sentry in kafka in a topic"
+                summary: |-
+                  Слишком много не обработанных сообщений в топиках kafka sentry
+                  Проверить работу consumer топика
+                plk_markup_format: markdown
+                plk_protocol_version: "1"
+                plk_labels_as_annotations: pod,instance
+          sentry-kafka-lag:
+            isTemplate: true
+            content: |
+              for: 5m
+              expr: sum(kafka_consumergroup_lag{}) by (consumergroup, topic) > 50000
+              labels:
+                severity_level: "3"
+              annotations:
+                description: "Too many unprocessed messages in sentry in kafka in a topic"
+                summary: |-
+                  Слишком много не обработанных сообщений в топиках kafka sentry
+                  Проверить работу consumer топика
+                plk_markup_format: markdown
+                plk_protocol_version: "1"
+                plk_labels_as_annotations: pod,instance
+
+apps-limit-range:
+  mem-dafault:
+    _include: ["apps-default-library-app"]
+    limits: |
+      - default:
+          memory: 128Mi
+        defaultRequest:
+          memory: 128Mi
+        type: Container
+
+apps-pvcs:
+  test-pvc:
+    _include: ["apps-default-library-app"]
+    storageClassName: test-sc
+    accessModes: |
+      - ReadWriteMany
+    resources: |
+      requests:
+        storage: 1Gi
+
+test-group:
+  __GroupVars__:
+    type: apps-stateless
+  test-app-ingress:
+    __AppType__: apps-ingresses
+    _include: ["apps-default-library-app"]
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testService
+            port:
+              number: 80
+  test-app-stateless:
+    _include: ["apps-default-library-app"]
+    containers:
+      main:
+        image:
+          name: nginx
+        envVars:
+          notRegex:
+            _default: testDefault
+            "te[st]t": testRegex
+            test: notRegex
+          regexEnv:
+            _default: defaultError
+            "te[ds].": regex
+            testing: error
+          defaultTest:
+            _default: default
+            "tes[x]": regexError
+            testing: error
+
+# 1.3.0
+# add custom certificates
+apps-certificates:
+  custom-certificate-1:
+    _include: ["apps-default-library-app"]
+    host: example.org
+    hosts: |
+      - "example-1.org"
+      - "example-2.org"
+  custom-issuer-1:
+    _include: ["apps-default-library-app"]
+    clusterIssuer: customIssuer
+    host: example.org
+    hosts: |
+      - "example-1.org"
+      - "example-2.org"
+apps-kafka-strimzi:
+  test-kafka:
+    kafka:
+      _include: ["base-defaultApp-stateful"]
+      brokers:
+        host:
+          _default: kafka-sentry-test-kafka-bootstrap
+          prod: kafka-sentry-prod-kafka-bootstrap
+        hosts:
+          _default:
+          - kafka-sentry-test-kafka-brokers
+          prod:
+          - kafka-sentry-prod-kafka-brokers
+        port:
+          _default: 9092
+      version:
+        _default: 2.7.0
+      replicas:
+        _default: 1
+        prod: 3
+      resources:
+        requests:
+          mcpu:
+            _default: 100
+            prod: 1000
+          memoryMb:
+            _default: 768
+            prod: 4096
+        limits:
+          memoryMb:
+            _default: 768
+            prod: 4096
+      jvmOptions:
+        _default: |
+          -Xms: 512m
+          -Xmx: 512m
+        prod: |
+          -Xms: 2048m
+          -Xmx: 2048m
+      storage:
+        size:
+          _default: 5Gi
+          prod: 100Gi
+
+      ui:
+        ingress:
+          url:
+            prod: sentry-kafka.{{ include "fl.value" (list $ . $.Values.global.baseUrl) }}
+        dex:
+          allowedGroups:
+            _default:
+            - hypermetrica-external-admins
+        resources:
+          requests:
+            mcpu: 100
+            memoryMb: 512
+          limits:
+            memoryMb: 512
+        memory: 512Mi
+        _include: ["base-defaultApp"]
+      exporter:
+        _include: ["base-defaultApp-stateful"]
+        resources:
+          requests:
+            mcpu: 200
+            memoryMb: 128
+          limits:
+            memoryMb: 128
+      entityOperator:
+        _include: ["base-defaultApp-stateful"]
+        topicOperator:
+          resources:
+            requests:
+              mcpu: 50
+              memoryMb: 256
+            limits:
+              memoryMb: 256
+        userOperator:
+          resources:
+            requests:
+              mcpu: 50
+              memoryMb: 256
+            limits:
+              memoryMb: 256
+      topics:
+        snuba-commit-log:
+          _include: ["default-kafkaTopic"]
+        cdc:
+          _include: ["default-kafkaTopic"]
+        event-replacements:
+          _include: ["default-kafkaTopic"]
+        event-replacements-legacy:
+          _include: ["default-kafkaTopic"]
+        events:
+          _include: ["default-kafkaTopic"]
+          partitions:
+            _default: 1
+          replicas:
+            _default: 3
+        events-subscription-results:
+          _include: ["default-kafkaTopic"]
+        ingest-attachments:
+          _include: ["default-kafkaTopic"]
+        ingest-events:
+          _include: ["default-kafkaTopic"]
+          partitions:
+            _default: 6
+        ingest-metrics:
+          _include: ["default-kafkaTopic"]
+        ingest-sessions:
+          _include: ["default-kafkaTopic"]
+        ingest-transactions:
+          _include: ["default-kafkaTopic"]
+        outcomes:
+          _include: ["default-kafkaTopic"]
+        snuba-queries:
+          _include: ["default-kafkaTopic"]
+        transactions-subscription-results:
+          _include: ["default-kafkaTopic"]
+      zookeeper:
+        _include: ["base-defaultApp-stateful"]
+        replicas:
+          _default: 1
+          prod: 3
+        resources:
+          requests:
+            mcpu: 500
+            memoryMb: 1024
+          limits:
+            memoryMb: 1024
+        jvmOptions:
+          _default: |
+            -Xms: 512m
+            -Xmx: 512m
+        metricsConfig: |
+          type: jmxPrometheusExporter
+          valueFrom:
+            configMapKeyRef:
+              name: kafka-metrics
+              key: zookeeper-metrics-config.yml
+        storage:
+          size:
+            _default: 1Gi
+            prod: 10Gi
+
+fromSecretsEnvVars-test:
+  # __GroupVars__ указываает что блок является группой и будет обрабатываться библиотекой helm-apps,
+  # генерируя приложения, указанные в поле type
+  # Также есть возможность переопределить тип генерируемого приложения, в блоке самого приложения, указав его в переменной
+  # __AppType__, например:
+  # my-steteless-app:
+  #   __AppType__: "apps-stateless"
+  __GroupVars__:
+    # type укзывает какого типа приложения будут генерироваться группой
+    # приложение можно объявить как темплейт следующим образом
+    # создать в папке .helm/templates файл _<имя файла>.tpl
+    # {{ define "<тип приложения>.render" }}
+    #  {{- $ := .}}
+    #  {{- with $.CurrentApp}}
+    # здесь вставить код темплейта
+    # в темплейте будут доступны все переменные из блока генерируемого приложения .<имя переменной>
+    #  {{- end}}
+    # {{- end}}
+    # или использовать существующий тип приложения
+    type: apps-stateless
+  app-for-test-from-secrets-env-vars:
+    _include: ["apps-stateless-defaultApp"]
+    # werfWeight задает порядок выкатки приложений добавляя аннотацию werf.io/weight: "NUM"
+    # аннотация добавляется на все автоматически связанные с приложением ресурсы
+    # подробнее: https://ru.werf.io/documentation/v1.2/reference/deploy_annotations.html#resource-weight
+    werfWeight: -10
+    verticalPodAutoscaler:
+      enabled: false
+    containers:
+      main:
+        fromSecretsEnvVars:
+          secret-1:
+            APP_ENV_NAME_1: SECRET_ENV_NAME_1
+            APP_ENV_NAME_2: SECRET_ENV_NAME_2
+  secret-1:
+    # В существующей группе можно сменить тип любого приложения,
+    # указав его тип в переменной __AppType__
+    __AppType__: apps-secrets
+    envVars:
+      SECRET_ENV_NAME_1: test1
+      SECRET_ENV_NAME_2: test2
+apps-dex-clients:
+  app-auth:
+    _include: ["default-library-app"]
+    redirectURIs: test.url
+
+ingress-with-dexAuth:
+  __GroupVars__:
+    type: apps-ingresses
+  ingress-dex-auth:
+    _include: ["apps-ingresses-defaultIngress"]
+    dexAuth:
+      enabled: true
+      clusterDomain: cluster.local
+    ingressClassName: nginx
+    host: example.org
+    paths: |
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testService
+            port:
+              number: 80
+    tls:
+      enabled: true
+
+apps-stateless-deckhouse-metrics:
+  __GroupVars__:
+    type: apps-stateless
+  app-with-deckhouse-metrics:
+    _include: ["apps-stateless-defaultApp"]
+    containers:
+      main:
+        envVars:
+          test: test
+    deckhouseMetrics:
+      mymetric-1:
+        enabled:
+          _default: true
+        kind: PodMetric
+        query: 'round(sum by(<<.GroupBy>>) (phpfpm_processes_total{state="active",<<.LabelMatchers>>}) / sum by(<<.GroupBy>>) (phpfpm_processes_total{<<.LabelMatchers>>}) * 100)'
+      metric-with-custom-name:
+        # по-умолчанию если метрика не выключена, то она считается включенной
+        enabled:
+          production: true
+        kind: ServiceMetric
+        name: custom-name
+        query: 'round(sum by(<<.GroupBy>>) (phpfpm_processes_total{state="active",<<.LabelMatchers>>}) / sum by(<<.GroupBy>>) (phpfpm_processes_total{<<.LabelMatchers>>}) * 100)'
+
+test-common-group-hook:
+  __GroupVars__:
+    _include: ["apps-default-library-app"]
+    type: apps-stateless
+    _preRenderGroupHook: |
+      {{ if include "fl.isTrue" (list $ . $.CurrentGroupVars.enabled) }}
+      {{ set (index $.CurrentGroup "test-app") "enabled" true }}
+      {{ set $.CurrentGroup "test-app-2" (index $.CurrentGroup "test-app" | deepCopy) }}
+      {{ end }}
+    _preRenderAppHook: |
+      test
+  test-app:
+    _include: ["apps-stateless-defaultApp"]
+    containers:
+      main:
+        envVars:
+          test: test
+    # serviceAccount генерирует связанный с приложением serviceAccount и связывает его с ClusterRole и ClusterRoleBinding
+    serviceAccount:
+      enabled: true
+      name: "{{ $.CurrentApp.name }}"
+      clusterRole:
+        name: "{{ $.CurrentApp.name }}:prometheus-access"
+        rules: |
+          - apiGroups: ["monitoring.coreos.com"]
+            resources: ["prometheuses/http"]
+            resourceNames: ["main", "longterm"]
+            verbs: ["get"]
