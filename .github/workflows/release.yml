@@ -32,7 +32,7 @@ jobs:
     - name: Render
       run: |
         source $(werf ci-env github --as-file)
-        pushd tests && werf render --validate --dev --set "global._includes.apps-defaults.enabled=true"
+        pushd tests && werf render --dev --set "global._includes.apps-defaults.enabled=true"
         popd
 
     - name: Install Helm
