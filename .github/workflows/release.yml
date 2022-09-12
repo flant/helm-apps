@@ -3,11 +3,11 @@ name: Release Charts
 on:
   push:
     branches:
-    - main
+    - "*"
 
 jobs:
   release:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -29,21 +29,44 @@ jobs:
         channel: ea
       uses: werf/actions/install@v1.2
 
+    - name: Install Helm3
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+    - name: Install Dyff
+      run: |
+        sudo snap install dyff
+        
+
     - name: Render
       run: |
+        set -e
         source $(werf ci-env github --as-file)
-        pushd tests && werf render --validate --dev --set "global._includes.apps-defaults.enabled=true"
-        popd
+        cd tests && werf render --dev --set "global._includes.apps-defaults.enabled=true" --env=prod
 
-    - name: Install Helm
-      uses: azure/setup-helm@v1
-      with:
-        version: v3.8.1
+    - name: Test render
+      run: |
+        set -e
+        source $(werf ci-env github --as-file)
+        cd tests && werf render --dev --set "global._includes.apps-defaults.enabled=true" --env=prod | sed '/werf.io\//d' > test_render_check.yaml
+        dyff between test_render.yaml test_render_check.yaml | tee /tmp/test_render_check
+        check_tests=$(sed 1,7d /tmp/test_render_check | wc -l)
+        if [ $check_tests -gt "7" ]; then exit 1; fi
 
     - name: Run chart-releaser
+      if: ${{ github.ref == 'refs/heads/main' }}
       uses: helm/chart-releaser-action@v1.4.0
       with:
         charts_dir: charts
         config: cr.yaml
       env:
         CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+    - name: Publish to CR
+      env:
+        CR_PAT: ${{ secrets.CR_PAT }}
+      run: |
+        echo $CR_PAT | helm registry login -u alvnukov  --password-stdin ghcr.io
+        find .cr-release-packages -mindepth 1 -maxdepth 1 -type f -name '*.tgz' -exec sh -c 'basename "$0"' '{}' \; | while read PACKAGE; do
+        helm push .cr-release-packages/$PACKAGE oci://ghcr.io/${GITHUB_REPOSITORY}
+        done

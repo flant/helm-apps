@@ -501,10 +501,11 @@ apps-jobs:
     ## Включить/выключить Job и создаваемые с ней ресурсы.
     # В репозитории приложения этой строки быть не должно, вместо этого Job'а включается через GitLab CI.
     # enabled: false
-    randomName: true
-    # alwaysRestart добавляет перременную в FL_APP_ALWAYS_RESTART контейнеры приложения с
+    # randomName включает/отключает генерацию уникального имени для джобы вида "job-1-XXXXXXX" где XXXXXXX уникальный набор символов
+    randomName: false
+    # alwaysRestart добавляет перременную в FL_APP_ALWAYS_RESTART в контейнеры приложения с
     # рандомным значением
-    alwaysRestart: true
+    alwaysRestart: false
     werfWeight:
       _default: -10
       production: 0
@@ -846,7 +847,7 @@ apps-stateful:
     persistantVolumes:
       data2:
         mountPath: /data2
-        class: localStorage
+        storageClass: localStorage
         size: 1Gi
 
     ## Список контейнеров приложения. Можно указать несколько.
@@ -989,7 +990,7 @@ apps-stateful:
         persistantVolumes:
           data2:
             mountPath: /data2
-            class: localStorage
+            storageClass: localStorage
             size: 1Gi
 
     ## Список инит-контейнеров приложения. Можно указать несколько.
@@ -1605,6 +1606,7 @@ test-group:
   test-app-ingress:
     __AppType__: apps-ingresses
     _include: ["apps-default-library-app"]
+    host: example.com
     paths: |
       - path: /
         pathType: Prefix
@@ -1824,6 +1826,9 @@ fromSecretsEnvVars-test:
       enabled: false
     containers:
       main:
+        image:
+          name: test
+          staticTag: 1
         fromSecretsEnvVars:
           secret-1:
             APP_ENV_NAME_1: SECRET_ENV_NAME_1
@@ -1868,6 +1873,8 @@ apps-stateless-deckhouse-metrics:
     _include: ["apps-stateless-defaultApp"]
     containers:
       main:
+        image:
+          name: nginx
         envVars:
           test: test
     deckhouseMetrics:
@@ -1899,6 +1906,9 @@ test-common-group-hook:
     _include: ["apps-stateless-defaultApp"]
     containers:
       main:
+        image:
+          name: test
+          staticTag: 1
         envVars:
           test: test
     # serviceAccount генерирует связанный с приложением serviceAccount и связывает его с ClusterRole и ClusterRoleBinding

@@ -92,8 +92,11 @@
   envFrom:
     {{- . | nindent 2 }}
   {{- end }}
+  {{- $resources := include "fl.generateContainerResources" (list $ . .resources) | trim }}
+  {{ with $resources }}
   resources:
-{{- include "fl.generateContainerResources" (list $ . .resources) | trim | nindent 4 }}
+    {{- . | nindent 4 }}
+  {{- end }}
   {{- $volumeMounts := include "fl.value" (list $ . .volumeMounts) | trim }}
   {{- $volumeMounts = list $volumeMounts (include "apps-helpers.generateVolumeMounts" (list $ .) | trim) | join "\n" | trim }}
   {{- with $volumeMounts }}

@@ -3,3 +3,4 @@
 **/*/charts
 **.tgz
 /.packages/
+tests/test_render_check.yaml
