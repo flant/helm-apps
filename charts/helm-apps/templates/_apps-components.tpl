@@ -92,11 +92,18 @@ apiVersion: v1
 kind: Service
 {{- include "apps-helpers.metadataGenerator" (list $ $service) }}
 spec:
+  {{- /* https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#service-v1-core */ -}}
+  {{- $specs := dict }}
+  {{- $_ := set $specs "Bools" (list "publishNotReadyAddresses" "allocateLoadBalancerNodePorts") }}
+  {{- $_ = set $specs "Lists" (list "clusterIPs" "externalIPs" "ipFamilies" "loadBalancerSourceRanges" "ports") }}
+  {{- $_ = set $specs "Strings" (list "externalName" "externalTrafficPolicy" "internalTrafficPolicy" "ipFamilyPolicy" "loadBalancerClass" "loadBalancerIP" "sessionAffinity" "type") }}
+  {{- $_ = set $specs "Numbers" (list "healthCheckNodePort") }}
+  {{- $_ = set $specs "Maps" (list "sessionAffinityConfig") }}
+  {{- include "apps-utils.generateSpecs" (list $ $service $specs) | nindent 2 }}
   selector: {{- include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim | nindent 4 }}
 {{-         if include "fl.isTrue" (list $ . $service.headless) }}
   clusterIP: None
 {{-         end }}
-  ports: {{- include "fl.value" (list $ . $service.ports) | trim | nindent 8 }}
 {{-       end }}
 {{-     end }}
 {{-   end }}

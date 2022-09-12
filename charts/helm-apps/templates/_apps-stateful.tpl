@@ -34,11 +34,11 @@ kind: StatefulSet
 {{-  end }}
 {{- include "apps-helpers.metadataGenerator" (list $ .) }}
 spec:
+  {{- /* https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#statefulset-v1-apps */ -}}
   {{- $specs := dict }}
-  {{- $_ = set $specs "Numbers" (list "minReadySeconds" "progressDeadlineSeconds" "revisionHistoryLimit") }}
-  {{- $_ = set $specs "Maps" (list "apps-helpers.podTemplate" "apps-specs.selector") }}
-  {{- $_ = set $specs "Numbers" (list "replicas") }}
-  {{- $_ = set $specs "Strings" (list "apps-specs.serviceName") }}
+  {{- $_ = set $specs "Maps" (list "apps-helpers.podTemplate" "apps-specs.selector" "persistentVolumeClaimRetentionPolicy" "updateStrategy") }}
+  {{- $_ = set $specs "Numbers" (list "replicas" "minReadySeconds" "revisionHistoryLimit" "progressDeadlineSeconds") }}
+  {{- $_ = set $specs "Strings" (list "apps-specs.serviceName" "podManagementPolicy") }}
   {{- $_ = set $specs "Lists" (list "apps-specs.volumeClaimTemplates") }}
   {{- include "apps-utils.generateSpecs" (list $ . $specs) | nindent 2 }}
   {{- $_ = unset . "__annotations__" -}}
