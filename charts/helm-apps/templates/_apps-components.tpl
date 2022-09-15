@@ -72,7 +72,7 @@ spec:
   selector:
     matchLabels:
 {{-       include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim | nindent 6 }}
-  maxUnavailable: {{ include "fl.valueQuoted" (list $ . .maxUnavailable) }}
+  maxUnavailable: {{ include "fl.value" (list $ . .maxUnavailable) }}
 {{-     end }}
 {{-   end }}
 {{-   include "apps-utils.leaveScope" $ }}
