@@ -72,9 +72,12 @@ spec:
   selector:
     matchLabels:
 {{-       include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim | nindent 6 }}
-  {{- $specs := dict }}
-  {{- $_ := set $specs "Strings" (list "maxUnavailable" "minAvailable") }}
-  {{- include "apps-utils.generateSpecs" (list $ $podDisruptionBudget $specs) | nindent 2 }}
+{{- with include "fl.value" (list $ . .maxUnavailable) }}
+  maxUnavailable: {{ . }}
+{{- end }}
+{{- with include "fl.value" (list $ . .minAvailable) }}
+  minAvailable: {{ . }}
+{{- end }}
 {{-     end }}
 {{-   end }}
 {{-   include "apps-utils.leaveScope" $ }}
