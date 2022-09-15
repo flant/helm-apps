@@ -2,6 +2,19 @@ apiVersion: v1
 entries:
   helm-apps:
   - apiVersion: v2
+    created: "2022-09-15T17:26:05.717647476Z"
+    description: A Helm applications library
+    digest: 6dff4fdee46c63d66452705d5190bc8f68039b0ead54d6787423d0a07ae326e9
+    maintainers:
+    - email: alexandr.vnukov@flant.com
+      name: alvnukov
+      url: https://github.com/alvnukov
+    name: helm-apps
+    type: library
+    urls:
+    - https://github.com/flant/helm-apps/releases/download/helm-apps-1.0.4/helm-apps-1.0.4.tgz
+    version: 1.0.4
+  - apiVersion: v2
     created: "2022-09-15T15:54:18.754388602Z"
     description: A Helm applications library
     digest: 55b681a4eb5a700d6311762c1c7c6d969bfbca5fdeb80467c8a2f7870d6f92fa
@@ -49,4 +62,4 @@ entries:
     urls:
     - https://github.com/flant/helm-apps/releases/download/helm-apps-1.0.0/helm-apps-1.0.0.tgz
     version: 1.0.0
-generated: "2022-09-15T15:54:18.754423332Z"
+generated: "2022-09-15T17:26:05.718249446Z"
