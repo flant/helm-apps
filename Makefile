@@ -1,4 +1,4 @@
 all: deps
 deps:
 	werf helm dependency update charts/helm-apps
-	werf helm dependency update tests.helm
+	werf helm dependency update tests/.helm
