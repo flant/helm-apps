@@ -889,7 +889,7 @@ apps-stateful:
             containerPort: 80
         ## Несекретные переменные окружения контейнера.
         # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
-        envs:
+        envVars:
           TEST1: "val1"
           TEST2: "val2"
         ## Секретные переменные окружения контейнера.
