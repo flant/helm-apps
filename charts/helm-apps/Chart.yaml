@@ -2,7 +2,7 @@ apiVersion: v2
 name: helm-apps
 description: A Helm applications library
 type: library
-version: 1.0.4
+version: 1.0.5
 maintainers:
   - name: alvnukov
     email: alexandr.vnukov@flant.com

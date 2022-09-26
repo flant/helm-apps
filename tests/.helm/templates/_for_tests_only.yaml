@@ -1,0 +1,3 @@
+{{- define "apps-version.getLibraryVersion" }}
+{{- "TEST" }}
+{{- end }}
