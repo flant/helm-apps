@@ -844,11 +844,7 @@ apps-stateful:
     volumes: |
       - name: cache-volume
         emptyDir: {}
-    persistantVolumes:
-      data2:
-        mountPath: /data2
-        storageClass: localStorage
-        size: 1Gi
+
 
     ## Список контейнеров приложения. Можно указать несколько.
     containers:
