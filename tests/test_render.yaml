@@ -1513,6 +1513,11 @@ spec:
       containers:
         - name: "container-1"
           image: alpine:3
+          env:
+            - name: "TEST1"
+              value: "val1"
+            - name: "TEST2"
+              value: "val2"
           envFrom:
             - configMapRef:
                 name: env-configmap
