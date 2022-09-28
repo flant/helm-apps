@@ -137,10 +137,10 @@ spec:
     kind: {{ $kind }}
     name: {{ $.CurrentApp.name | quote }}
   metrics:
-{{-         with required (printf "You need a valid entry in horizontalPodAutoscaler.metric on %s app" $.CurrentApp.name) (include "fl.value" (list $ . $.CurrentApp.horizontalPodAutoscaler.metrics)) }}
+{{-         with required (printf "You need a valid entry in horizontalPodAutoscaler.metrics on %s app" $.CurrentApp.name) $.CurrentApp.horizontalPodAutoscaler.metrics }}
 {{-           if kindIs "string" . }}
-{{-             print . | nindent 2 }}
-{{-           else if kindOf "map" . }}
+{{-             print (include "fl.value" (list $ . .)) | nindent 2 }}
+{{-           else if kindIs "map" . }}
 {{-             include "apps-helpers.generateHPAMetrics" (list $ $RelatedScope) | trim | nindent 2 }}
 {{-           end }}
 {{-         end }}
@@ -149,14 +149,12 @@ spec:
 {{-           include "apps-utils.enterScope" (list $ $_customMetricResourceName) }}
 {{-           if include "fl.isTrue" (list $ . .enabled) }}
 {{-             $_ := set . "name" $_customMetricResourceName }}
-{{-             $_ = set $ "CurrentTargetCustomMetric" $_customMetricResource }}
+{{-             $currentApp := $.CurrentApp}}
+{{-             $_ = set $ "CurrentApp" . }}
 ---
 {{- include "apps-utils.printPath" $ }}
-apiVersion: deckhouse.io/v1alpha1
-kind: {{ include "fl.valueQuoted" (list $ . .kind) }}
-{{- include "apps-helpers.metadataGenerator" (list $ . ) }}
-spec:
-  query: {{ include "fl.valueQuoted" (list $ . .query) }}
+{{- include "apps-deckhouse-metrics.render" $ }}
+{{-             $_ = set $ "CurrentApp" $currentApp }}
 {{-           end }}
 {{-           include "apps-utils.leaveScope" $ }}
 {{-         end }}

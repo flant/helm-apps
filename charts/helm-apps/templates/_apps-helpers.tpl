@@ -229,7 +229,6 @@ annotations:
     {{- $ := index . 0 }}
     {{- $RelatedScope := index . 1 }}
 {{- with $RelatedScope }}
-
 metadata:
   {{- if hasKey . "name" }}
   name: {{ include "fl.value" (list $ . .name) | quote }}
@@ -256,24 +255,24 @@ metadata:
 {{- if has $metricName (list "cpu" "memory") }}
 - type: Resource
   resource:
-    name: $metricName
+    name: {{ $metricName }}
     target:
       type: Utilization
       averageUtilization: {{ include "apps-utils.requiredValue" (list $ . "averageUtilization") }}
 {{- else }}
 {{ $type :=  include "apps-utils.requiredValue" (list $ . "type") }}
 {{- if eq $type "Object"}}
-  - type: Object
-    object:
-      describedObject:
-        apiVersion: v1
-        kind: {{ include "apps-utils.requiredValue" (list $ . "kind") }}
-        name: {{ $metricName }}
-      metric:
-        name: {{ printf "%s-%s-metric" $.CurrentApp.name $metricName  }}
-      target:
-        type: Value
-        value: {{ include "apps-utils.requiredValue" (list $ . "targetValue") }}
+- type: Object
+  object:
+    describedObject:
+      apiVersion: v1
+      kind: {{ include "apps-utils.requiredValue" (list $ . "kind") }}
+      name: {{ $metricName }}
+    metric:
+      name: {{ include "apps-utils.requiredValue"  (list $ . "customMetricResourceName") }}
+    target:
+      type: Value
+      value: {{ include "apps-utils.requiredValue" (list $ . "targetValue") }}
 {{- end }}
 {{- end }}
 {{- include "apps-utils.leaveScope" $ }}

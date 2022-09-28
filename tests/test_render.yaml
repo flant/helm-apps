@@ -86,6 +86,23 @@ spec:
       app: "test-app-2"
   maxUnavailable: 15%
 ---
+# Helm Apps Library: test-hpa.hpa-app.podDisruptionBudget
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: "hpa-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "hpa-app"
+    chart: "tests"
+    repo: ""
+spec:
+  selector:
+    matchLabels:
+      app: "hpa-app"
+  maxUnavailable: 15%
+---
 # Helm Apps Library: apps-stateless.app-1.podDisruptionBudget
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
@@ -1074,6 +1091,51 @@ spec:
       app: "test-app-stateless"
 ---
 # Source: tests/templates/init-flant-apps-library.yaml
+# Helm Apps Library: test-hpa.hpa-app
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "hpa-app"
+  annotations:
+    checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    helm-apps/version: "TEST"
+  labels:
+    app: "hpa-app"
+    chart: "tests"
+    repo: ""
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 20%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      name: "hpa-app"
+      annotations:
+        checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        helm-apps/version: "TEST"
+      labels:
+        app: "hpa-app"
+        chart: "tests"
+        repo: ""
+    spec:
+      containers:
+        - name: "main"
+          image: test:1
+          env:
+            - name: "test"
+              value: "test"
+      imagePullSecrets:
+        - name: registrysecret
+      priorityClassName: "production-medium"
+  selector:
+    matchLabels:
+      app: "hpa-app"
+  revisionHistoryLimit: 3
+---
+# Source: tests/templates/init-flant-apps-library.yaml
 # Helm Apps Library: apps-stateless.app-1
 
 apiVersion: apps/v1
@@ -1395,6 +1457,55 @@ spec:
       app: "pod-disruption-budget-integer"
   revisionHistoryLimit: 3
   replicas: 2
+---
+# Helm Apps Library: test-hpa.hpa-app.horizontalPodAutoscaler
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: "hpa-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "hpa-app"
+    chart: "tests"
+    repo: ""
+spec:
+  minReplicas: 3
+  maxReplicas: 10
+  behavior:
+    scaleDown:
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: "hpa-app"
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Object
+      object:
+        describedObject:
+          apiVersion: v1
+          kind: Service
+          name: hpa-metric-1
+        metric:
+          name: custom-metric-1
+        target:
+          type: Value
+          value: 10000m
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 30
 ---
 # Helm Apps Library: apps-stateless.app-1.horizontalPodAutoscaler
 apiVersion: autoscaling/v2beta2
@@ -2276,18 +2387,31 @@ metadata:
     chart: "tests"
     repo: ""
 spec:
-  query: round(sum by(<<.GroupBy>>) (phpfpm_processes_total{state="active",<<.LabelMatchers>>}) / sum by(<<.GroupBy>>) (phpfpm_processes_total{<<.LabelMatchers>>}) * 100)
+  query: "round(sum by(<<.GroupBy>>) (phpfpm_processes_total{state=\"active\",<<.LabelMatchers>>}) / sum by(<<.GroupBy>>) (phpfpm_processes_total{<<.LabelMatchers>>}) * 100)"
+---
+# Helm Apps Library: test-hpa.hpa-app.horizontalPodAutoscaler.custom-metric-1
+apiVersion: deckhouse.io/v1beta1
+kind: "ServiceMetric"
+metadata:
+  name: "custom-metric-1"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "custom-metric-1"
+    chart: "tests"
+    repo: ""
+spec:
+  query: "sum(rate(sidekiq_jobs_enqueued_total{<<.LabelMatchers>>, queue=\"default\"}[1m])) by (<<.GroupBy>>)"
 ---
 # Helm Apps Library: apps-stateless.app-1.horizontalPodAutoscaler.metric-1
-apiVersion: deckhouse.io/v1alpha1
+apiVersion: deckhouse.io/v1beta1
 kind: "ServiceMetric"
 metadata:
   name: "metric-1"
   annotations:
     helm-apps/version: "TEST"
-    testAnnotation: "testVal"
   labels:
-    app: "app-1"
+    app: "metric-1"
     chart: "tests"
     repo: ""
 spec:
@@ -2349,6 +2473,26 @@ spec:
     apiVersion: "apps/v1"
     kind: Deployment
     name: "test-app-2"
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy: {}
+---
+# Helm Apps Library: test-hpa.hpa-app.verticalPodAutoscaler
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: "hpa-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "hpa-app"
+    chart: "tests"
+    repo: ""
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: "hpa-app"
   updatePolicy:
     updateMode: "Off"
   resourcePolicy: {}
