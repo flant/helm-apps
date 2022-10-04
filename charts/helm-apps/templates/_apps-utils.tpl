@@ -132,6 +132,7 @@
 {{-         $_ := include "fl.value" (list $ $.CurrentApp $.CurrentApp._preRenderHook) }}
 {{-     end }}
 {{- end }}
+
 {{- define "apps-utils.renderApps" }}
 {{-     $ := index . 0 }}
 {{-     $appScope := index . 1 }}
@@ -148,30 +149,32 @@
 {{-             if  hasKey . "__AppType__"      }}
 {{-                 $type = .__AppType__        }}
 {{-             end }}
+{{-             if not (eq $type "__DO_NOT_RENDER__") }}
 {{-             $_ := set . "__AppName__" $_appName }}
-{{-             if hasKey . "name" }}
-{{-                 $_ := set . "name" (include "fl.value" (list $ . .name)) }}
-{{-             else }}
-{{-                 $_ := set . "name" $_appName }}
-{{-             end }}
-{{-             $_ := set $ "CurrentApp" . }}
-{{-             include "apps-utils.preRenderHooks" $ }}
-{{-             if (include "fl.isTrue" (list $ . .randomName)) }}
-{{-                 $_ := set . "name" (printf "%s-%s" .name (randAlphaNum 7 | lower)) }}
-{{-             end }}
-{{-             if include "fl.isTrue" (list $ . .enabled) }}
-{{-                 if not .__Rendered__ }}
-{{-                     include "apps-utils.printPath" $ }}
-{{-                     include "apps-helpers.activateContainerForDefault" $ }}
-{{-                     include (printf "%s.render" $type) $ }}
+{{-                 if hasKey . "name" }}
+{{-                     $_ := set . "name" (include "fl.value" (list $ . .name)) }}
+{{-                 else }}
+{{-                     $_ := set . "name" $_appName }}
 {{-                 end }}
+{{-                 $_ := set $ "CurrentApp" . }}
+{{-                 include "apps-utils.preRenderHooks" $ }}
+{{-                 if (include "fl.isTrue" (list $ . .randomName)) }}
+{{-                     $_ := set . "name" (printf "%s-%s" .name (randAlphaNum 7 | lower)) }}
+{{-                 end }}
+{{-                 if include "fl.isTrue" (list $ . .enabled) }}
+{{-                     if not .__Rendered__ }}
+{{-                         include "apps-utils.printPath" $ }}
+{{-                         include "apps-helpers.activateContainerForDefault" $ }}
+{{-                         include (printf "%s.render" $type) $ }}
+{{-                     end }}
+{{-                 end }}
+{{-                 $_ = set . "__Rendered__" true }}
+{{-                 include "apps-utils.leaveScope" $ }}
 {{-             end }}
-{{-             $_ = set . "__Rendered__" true }}
-{{-             include "apps-utils.leaveScope" $ }}
 {{-         end }}
 {{-     end }}
 {{-     include "apps-utils.leaveScope" $ }}
-{{- end -}}
+{{- end -}}}
 
 {{- define "_apps-utils.initCurrentGroupVars" }}
 {{-     $ := index . 0 }}
@@ -213,6 +216,7 @@
 "infra"
 "pvcs"
 "certificates"
+"services"
 }}
 {{-     range $app := $Library }}
 {{-         include (printf "apps-%s" $app) (list $ (index $.Values (printf "apps-%s" $app))) }}
@@ -224,6 +228,9 @@
 {{-     range $groupName, $group := omit $.Values "global" "enabled" "_include" }}
 {{-         if kindIs "map" $group }}
 {{-         if hasKey $group "__GroupVars__" }}
+{{-             if not (kindIs "map" $group.__GroupVars__) }}
+{{-                 $_ := set $group "__GroupVars__" dict }}
+{{-             end }}
 {{-             $_ := set $group.__GroupVars__ "name" $groupName }}
 {{-             include "apps-utils.renderApps" (list $ .) }}
 {{-         end }}

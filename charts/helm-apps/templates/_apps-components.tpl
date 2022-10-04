@@ -87,33 +87,40 @@ spec:
 {{-   $ := index . 0 }}
 {{-   $RelatedScope := index . 1 }}
 {{-   $service := index . 2 }}
-{{-   include "apps-utils.enterScope" (list $ "service") }}
 {{-   if $service }}
 {{-     if include "fl.isTrue" (list $ . $service.enabled) }}
 {{-       if include "fl.value" (list $ . $service.ports) }}
+{{-         include "apps-utils.enterScope" (list $ "service") }}
 ---
-{{- include "apps-utils.printPath" $ }}
+{{-         include "apps-utils.printPath" $ }}
+{{-         $_ := set $service "selector" (include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim) }}
+{{-         if include "fl.isTrue" (list $ . $service.headless) }}
+{{-           $_ := set $service "clusterIP" "None" }}
+{{-         end }}
+{{-         include "apps-components._service" (list $ $service) }}
+{{-         include "apps-utils.leaveScope" $ }}
+{{-       end }}
+{{-     end }}
+{{-   end }}
+{{- end }}
+
+{{- define "apps-components._service" }}
+{{-   $ := index . 0 }}
+{{-   $RelatedScope := index . 1 }}
 apiVersion: v1
 kind: Service
-{{- include "apps-helpers.metadataGenerator" (list $ $service) }}
+{{- include "apps-helpers.metadataGenerator" (list $ $RelatedScope) }}
 spec:
   {{- /* https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#service-v1-core */ -}}
   {{- $specs := dict }}
   {{- $_ := set $specs "Bools" (list "publishNotReadyAddresses" "allocateLoadBalancerNodePorts") }}
   {{- $_ = set $specs "Lists" (list "clusterIPs" "externalIPs" "ipFamilies" "loadBalancerSourceRanges" "ports") }}
-  {{- $_ = set $specs "Strings" (list "externalName" "externalTrafficPolicy" "internalTrafficPolicy" "ipFamilyPolicy" "loadBalancerClass" "loadBalancerIP" "sessionAffinity" "type") }}
+  {{- $_ = set $specs "Strings" (list "externalName" "externalTrafficPolicy" "internalTrafficPolicy" "ipFamilyPolicy" "loadBalancerClass" "loadBalancerIP" "sessionAffinity" "type" "clusterIP") }}
   {{- $_ = set $specs "Numbers" (list "healthCheckNodePort") }}
-  {{- $_ = set $specs "Maps" (list "sessionAffinityConfig") }}
-  {{- include "apps-utils.generateSpecs" (list $ $service $specs) | nindent 2 }}
-  selector: {{- include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim | nindent 4 }}
-{{-         if include "fl.isTrue" (list $ . $service.headless) }}
-  clusterIP: None
-{{-         end }}
-{{-       end }}
-{{-     end }}
-{{-   end }}
-{{-   include "apps-utils.leaveScope" $ }}
+  {{- $_ = set $specs "Maps" (list "sessionAffinityConfig" "selector") }}
+  {{- include "apps-utils.generateSpecs" (list $ $RelatedScope $specs) | nindent 2 }}
 {{- end }}
+
 
 {{- define "apps-components.horizontalPodAutoscaler" }}
 {{-   $ := index . 0 }}
