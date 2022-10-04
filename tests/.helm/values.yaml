@@ -1979,3 +1979,12 @@ test-hpa:
           query: 'sum(rate(sidekiq_jobs_enqueued_total{<<.LabelMatchers>>, queue="default"}[1m])) by (<<.GroupBy>>)'
     service:
       name: "{{ $.CurrentApp.name }}"
+
+apps-services:
+  service-1:
+    _include: ["apps-defaults"]
+    ports: |
+      - name: http
+        port: 80
+    selector: |
+      app: test-app

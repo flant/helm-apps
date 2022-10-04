@@ -817,7 +817,7 @@ spec:
       port: 80
   selector:
     app: "app-1"
-  clusterIP: None
+  clusterIP: "None"
 ---
 # Helm Apps Library: apps-stateless.nginx.service
 apiVersion: v1
@@ -856,7 +856,26 @@ spec:
       port: 80
   selector:
     app: "app-1"
-  clusterIP: None
+  clusterIP: "None"
+---
+# Source: tests/templates/init-flant-apps-library.yaml
+# Helm Apps Library: apps-services.service-1
+apiVersion: v1
+kind: Service
+metadata:
+  name: "service-1"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "service-1"
+    chart: "tests"
+    repo: ""
+spec:
+  ports:
+    - name: http
+      port: 80
+  selector:
+    app: test-app
 ---
 # Source: tests/templates/init-flant-apps-library.yaml
 # Helm Apps Library: apps-stateless-deckhouse-metrics.app-with-deckhouse-metrics
