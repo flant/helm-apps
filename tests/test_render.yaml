@@ -902,7 +902,6 @@ spec:
       name: "app-with-deckhouse-metrics"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "app-with-deckhouse-metrics"
         chart: "tests"
@@ -947,7 +946,6 @@ spec:
       name: "app-for-test-from-secrets-env-vars"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "app-for-test-from-secrets-env-vars"
         chart: "tests"
@@ -1000,7 +998,6 @@ spec:
       name: "test-app"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "test-app"
         chart: "tests"
@@ -1046,7 +1043,6 @@ spec:
       name: "test-app-2"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "test-app-2"
         chart: "tests"
@@ -1087,7 +1083,6 @@ spec:
       name: "test-app-stateless"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "test-app-stateless"
         chart: "tests"
@@ -1134,7 +1129,6 @@ spec:
       name: "hpa-app"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "hpa-app"
         chart: "tests"
@@ -1181,7 +1175,6 @@ spec:
       name: "app-1"
       annotations:
         checksum/config: "26b1f9d89bb284630ce4bef3168b25692e1f4a52fd58fdea6ffa45f4e56a17f2"
-        helm-apps/version: "TEST"
         testAnnotation: "testVal"
       labels:
         app: "app-1"
@@ -1356,7 +1349,6 @@ spec:
       name: "minimum-app"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "minimum-app"
         chart: "tests"
@@ -1400,7 +1392,6 @@ spec:
       name: "nginx"
       annotations:
         checksum/config: "19812d5210967fd69097dc991263af171c4071ebb455357bd49be2a0ca05acdd"
-        helm-apps/version: "TEST"
       labels:
         app: "nginx"
         chart: "tests"
@@ -1457,7 +1448,6 @@ spec:
       name: "pod-disruption-budget-integer"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "pod-disruption-budget-integer"
         chart: "tests"
@@ -1597,7 +1587,6 @@ spec:
       name: "app-1"
       annotations:
         checksum/config: "26b1f9d89bb284630ce4bef3168b25692e1f4a52fd58fdea6ffa45f4e56a17f2"
-        helm-apps/version: "TEST"
         testAnnotation: "testVal"
       labels:
         app: "app-1"
@@ -1766,7 +1755,6 @@ spec:
       name: "stateful-simple"
       annotations:
         checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        helm-apps/version: "TEST"
       labels:
         app: "stateful-simple"
         chart: "tests"
@@ -1814,7 +1802,6 @@ spec:
     metadata:
       name: "job-1"
       annotations:
-        helm-apps/version: "TEST"
         testAnnotation: "testVal"
       labels:
         app: "job-1"
@@ -1956,7 +1943,6 @@ spec:
         metadata:
           name: "cronjob-1"
           annotations:
-            helm-apps/version: "TEST"
             testAnnotation: "testVal"
           labels:
             app: "cronjob-1"

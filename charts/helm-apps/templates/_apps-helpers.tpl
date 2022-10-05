@@ -119,6 +119,7 @@
     {{- $ := index . 0 }}
     {{- $RelatedScope := index . 1 }}
 {{- with $RelatedScope }}
+{{- $_ := set . "__DO_NOT_ANNOTATE_WITH_LIB_VERSION__" true }}
 {{- include "apps-helpers.metadataGenerator" (list $ .) }}
 spec:
   {{- $_ := set $.CurrentApp "_currentContainersType" "initContainers" }}
@@ -210,7 +211,9 @@ spec:
 {{- $libVersion := include "apps-version.getLibraryVersion" $ | trim }}
 {{- with $libVersion }}
 {{- if not (eq . "_FLANT_APPS_LIBRARY_VERSION_") }}
+{{- if not $RelatedScope.__DO_NOT_ANNOTATE_WITH_LIB_VERSION__ }}
 {{- $_ := set $libAnnotations  "helm-apps/version" . }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- $userAnnotations := fromYaml (include "fl.value" (list $ . $.CurrentApp.annotations)) }}
