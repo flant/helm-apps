@@ -9,7 +9,7 @@
 {{-         else }}
 {{-         $password }}
 {{-     end }}
-{{- end }}
+{{- end -}}
 
 {{- define "fl.generateContainerImageQuoted" }}
 {{-     $ := index . 0 }}
@@ -21,7 +21,7 @@
 {{-         else -}}
 {{-         index $.Values.werf.image $imageName }}
 {{-     end }}
-{{- end }}
+{{- end -}}
 
 {{- define "apps-utils.generateSpecs" }}
 {{-     $ := index . 0 }}
@@ -98,7 +98,7 @@
 {{-         end }}
 {{-     end }}
 {{-     end }}
-{{- end }}
+{{- end -}}
 
 {{- define "apps-utils.requiredValue" }}
 {{-     $ := index . 0 }}
@@ -131,7 +131,7 @@
 {{-     if  hasKey $.CurrentApp "_preRenderHook" }}
 {{-         $_ := include "fl.value" (list $ $.CurrentApp $.CurrentApp._preRenderHook) }}
 {{-     end }}
-{{- end }}
+{{- end -}}
 
 {{- define "apps-utils.renderApps" }}
 {{-     $ := index . 0 }}
@@ -141,7 +141,9 @@
 {{-     range $_appName, $_app := omit $appScope "global" "enabled" "_include" "__GroupVars__" "__AppType__" }}
 {{-         if hasKey . "__GroupVars__" }}
 {{-             include "_apps-utils.initCurrentGroupVars" (list $ . $_appName) }}
-{{-             include "apps-utils.renderApps" (list $ . $.CurrentGroupVars.type) }}
+{{-             if include "fl.isTrue" (list $ . $.CurrentGroupVars.enabled) }}
+{{-               include "apps-utils.renderApps" (list $ . $.CurrentGroupVars.type) }}
+{{-             end }}
 {{-             include "_apps-utils.initCurrentGroupVars" (list $ $appScope $appScope.__GroupVars__.name) }}
 {{-         else }}
 {{-             include "apps-utils.enterScope" (list $ $_appName) }}
@@ -174,7 +176,7 @@
 {{-         end }}
 {{-     end }}
 {{-     include "apps-utils.leaveScope" $ }}
-{{- end -}}}
+{{- end -}}
 
 {{- define "_apps-utils.initCurrentGroupVars" }}
 {{-     $ := index . 0 }}
@@ -188,10 +190,13 @@
 {{-     end }}
 {{-     $_ = set $ "CurrentGroupVars" $groupScope.__GroupVars__ }}
 {{-     $_ = set $ "CurrentGroup" $groupScope }}
+{{-     if not (hasKey $.CurrentGroupVars "enabled") }}
+{{-       $_ := set $.CurrentGroupVars "enabled" true }}
+{{-     end }}
 {{-     if hasKey $groupScope.__GroupVars__ "_preRenderGroupHook" }}
 {{-         $_ = include "fl.value" (list $ $groupScope $groupScope.__GroupVars__._preRenderGroupHook) }}
 {{-     end }}
-{{- end }}
+{{- end -}}
 
 {{- define "apps-utils.init-library" }}
 {{- $ := . }}
@@ -222,7 +227,8 @@
 {{-         include (printf "apps-%s" $app) (list $ (index $.Values (printf "apps-%s" $app))) }}
 {{-     end }}
 ---
-{{- end }}
+{{- end -}}
+
 {{- define "apps-utils.findApps" }}
 {{- $ := . }}
 {{-     range $groupName, $group := omit $.Values "global" "enabled" "_include" }}
@@ -231,12 +237,17 @@
 {{-             if not (kindIs "map" $group.__GroupVars__) }}
 {{-                 $_ := set $group "__GroupVars__" dict }}
 {{-             end }}
+{{-             if not (hasKey $group.__GroupVars__ "enabled") }}
+{{-                 $_ := set $group.__GroupVars__ "enabled" true }}
+{{-             end }}
 {{-             $_ := set $group.__GroupVars__ "name" $groupName }}
-{{-             include "apps-utils.renderApps" (list $ .) }}
+{{-             if include "fl.isTrue" (list $ . $group.__GroupVars__.enabled) }}
+{{-                 include "apps-utils.renderApps" (list $ .) }}
+{{-             end }}
 {{-         end }}
 {{-         end }}
 {{-     end }}
-{{- end }}
+{{- end -}}
 
 {{- define "apps-utils.printPath" }}
 {{-   printf "\n---\n# Helm Apps Library: %s" (.CurrentPath | join ".") }}
