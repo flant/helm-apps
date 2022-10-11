@@ -1988,3 +1988,23 @@ apps-services:
         port: 80
     selector: |
       app: test-app
+      
+test-env-yaml:
+  __GroupVars__:
+    type: apps-stateless
+  env-yaml-app:
+    _include: ["apps-stateless-defaultApp"]
+    containers:
+      test:
+        envYAML:
+          testApp:
+            level1:
+              testEnvIgnored: test ignored #ошибка, будет проигнорировано - в описании перемнной обязательно должен быть ключ "_default"
+              testEnvIgnored_2:
+                test: test ignored  #ошибка, будет проигнорировано - в описании перемнной обязательно должен быть ключ "_default"
+              testEnv3:
+                _default:  default value #ошибки нет, в описании перемнной обязательно должен быть ключ "_default"
+                prod: prod value
+              level2:
+                test:
+                  _default: default value #ошибки нет, в описании перемнной обязательно должен быть ключ "_default"

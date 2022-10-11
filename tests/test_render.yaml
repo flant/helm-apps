@@ -1,4 +1,4 @@
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-limit-range.mem-dafault
 apiVersion: v1
 kind: LimitRange
@@ -84,6 +84,23 @@ spec:
   selector:
     matchLabels:
       app: "test-app-2"
+  maxUnavailable: 15%
+---
+# Helm Apps Library: test-env-yaml.env-yaml-app.podDisruptionBudget
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: "env-yaml-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+spec:
+  selector:
+    matchLabels:
+      app: "env-yaml-app"
   maxUnavailable: 15%
 ---
 # Helm Apps Library: test-hpa.hpa-app.podDisruptionBudget
@@ -207,7 +224,7 @@ spec:
       app: "stateful-simple"
   maxUnavailable: 15%
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -219,7 +236,7 @@ metadata:
     chart: "tests"
     repo: ""
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -506,7 +523,7 @@ data:
   "TEST1": "dmFsMQ=="
   "TEST2": "dmFsMg=="
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-secrets.secret-1
 apiVersion: v1
 kind: Secret
@@ -684,7 +701,7 @@ data:
     configline1
     configline2
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-configmaps.configmap-1
 apiVersion: v1
 kind: ConfigMap
@@ -705,7 +722,7 @@ data:
   something.conf: |
     configline1
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-pvcs.test-pvc
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -725,7 +742,7 @@ spec:
       storage: 1Gi
   storageClassName: "test-sc"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -742,7 +759,7 @@ rules:
     resourceNames: ["main", "longterm"]
     verbs: ["get"]
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -759,7 +776,7 @@ rules:
     resourceNames: ["main", "longterm"]
     verbs: ["get"]
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -779,7 +796,7 @@ subjects:
     name: test-app
     namespace: test-prod
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -858,7 +875,7 @@ spec:
     app: "app-1"
   clusterIP: "None"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-services.service-1
 apiVersion: v1
 kind: Service
@@ -877,7 +894,7 @@ spec:
   selector:
     app: test-app
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateless-deckhouse-metrics.app-with-deckhouse-metrics
 
 apiVersion: apps/v1
@@ -921,7 +938,7 @@ spec:
       app: "app-with-deckhouse-metrics"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: fromSecretsEnvVars-test.app-for-test-from-secrets-env-vars
 
 apiVersion: apps/v1
@@ -973,7 +990,7 @@ spec:
       app: "app-for-test-from-secrets-env-vars"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: test-common-group-hook.test-app
 
 apiVersion: apps/v1
@@ -1018,7 +1035,7 @@ spec:
       app: "test-app"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: test-common-group-hook.test-app-2
 
 apiVersion: apps/v1
@@ -1063,7 +1080,53 @@ spec:
       app: "test-app-2"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
+# Helm Apps Library: test-env-yaml.env-yaml-app
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "env-yaml-app"
+  annotations:
+    checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 20%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      name: "env-yaml-app"
+      annotations:
+        checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      labels:
+        app: "env-yaml-app"
+        chart: "tests"
+        repo: ""
+    spec:
+      containers:
+        - name: "test"
+          image:
+          env:
+            - name: "TEST_APP_LEVEL1_LEVEL2_TEST"
+              value: "default value"
+            - name: "TEST_APP_LEVEL1_TEST_ENV3"
+              value: "prod value"
+      imagePullSecrets:
+        - name: registrysecret
+      priorityClassName: "production-medium"
+  selector:
+    matchLabels:
+      app: "env-yaml-app"
+  revisionHistoryLimit: 3
+---
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: test-group.test-app-stateless
 
 apiVersion: apps/v1
@@ -1104,7 +1167,7 @@ spec:
     matchLabels:
       app: "test-app-stateless"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: test-hpa.hpa-app
 
 apiVersion: apps/v1
@@ -1148,7 +1211,7 @@ spec:
       app: "hpa-app"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateless.app-1
 
 apiVersion: apps/v1
@@ -1324,7 +1387,7 @@ spec:
   revisionHistoryLimit: 3
   replicas: 2
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateless.minimum-app
 
 apiVersion: apps/v1
@@ -1367,7 +1430,7 @@ spec:
       app: "minimum-app"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateless.nginx
 
 apiVersion: apps/v1
@@ -1423,7 +1486,7 @@ spec:
   revisionHistoryLimit: 3
   replicas: 1
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateless.pod-disruption-budget-integer
 
 apiVersion: apps/v1
@@ -1554,7 +1617,7 @@ spec:
           type: Value
           value: 10000m
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateful.app-1
 
 apiVersion: apps/v1
@@ -1735,7 +1798,7 @@ spec:
   replicas: 2
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-stateful.stateful-simple
 
 apiVersion: apps/v1
@@ -1782,7 +1845,7 @@ spec:
   serviceName: "stateful-simple"
   revisionHistoryLimit: 3
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-jobs.job-1
 apiVersion: batch/v1
 kind: Job
@@ -1916,7 +1979,7 @@ spec:
       restartPolicy: "Never"
       activeDeadlineSeconds: 1800
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-cronjobs.cronjob-1
 apiVersion: batch/v1beta1
 kind: CronJob
@@ -2057,7 +2120,7 @@ spec:
           restartPolicy: "Never"
           activeDeadlineSeconds: 1800
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: ingress-with-dexAuth.ingress-dex-auth
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2088,7 +2151,7 @@ spec:
                 port:
                   number: 80
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: test-group.test-app-ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2112,7 +2175,7 @@ spec:
                 port:
                   number: 80
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-ingresses.ingress-1
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2140,7 +2203,7 @@ spec:
                 port:
                   number: 80
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-ingresses.ingress-2
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2165,7 +2228,7 @@ spec:
                 port:
                   number: 80
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-ingresses.ingress-3
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2192,7 +2255,7 @@ spec:
                 port:
                   number: 80
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-ingresses.ingress-4
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2218,7 +2281,7 @@ spec:
                 port:
                   number: 80
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-ingresses.nginx
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -2287,7 +2350,7 @@ spec:
   dnsNames:
     - "example.com"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-certificates.custom-certificate-1
 
 apiVersion: cert-manager.io/v1
@@ -2305,7 +2368,7 @@ spec:
     - "example-1.org"
     - "example-2.org"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-certificates.custom-issuer-1
 
 apiVersion: cert-manager.io/v1
@@ -2323,7 +2386,7 @@ spec:
     - "example-1.org"
     - "example-2.org"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-custom-prometheus-rules.test-rule
 apiVersion: deckhouse.io/v1
 kind: CustomPrometheusRules
@@ -2364,7 +2427,7 @@ spec:
             plk_protocol_version: "1"
             plk_labels_as_annotations: pod,instance
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: deckhouse.io/v1
 kind: DexAuthenticator
 metadata:
@@ -2380,7 +2443,7 @@ spec:
   applicationIngressCertificateSecretName: "ingress-dex-auth"
   applicationIngressClassName: "nginx"
 ---
-# Source: tests/templates/init-flant-apps-library.yaml
+# Source: tests/templates/init-helm-apps-library.yaml
 apiVersion: deckhouse.io/v1beta1
 kind: PodMetric
 metadata:
@@ -2478,6 +2541,26 @@ spec:
     apiVersion: "apps/v1"
     kind: Deployment
     name: "test-app-2"
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy: {}
+---
+# Helm Apps Library: test-env-yaml.env-yaml-app.verticalPodAutoscaler
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: "env-yaml-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: "env-yaml-app"
   updatePolicy:
     updateMode: "Off"
   resourcePolicy: {}

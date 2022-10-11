@@ -159,6 +159,12 @@ spec:
     {{- if include "fl.isTrue" (list $ . $.CurrentApp.alwaysRestart) }}
     {{- $_ := set .envVars "FL_APP_ALWAYS_RESTART" (randAlphaNum 20) }}
     {{- end }}
+    {{- if kindIs "map" .envYAML }}
+    {{- include "apps-utils.enterScope" (list $ "envYAML") }}
+    {{- $_ := set $ "CurrentEnvYAML" (dict "path" (list) "local" . "envs" .envYAML "startPathLength" (len $.CurrentPath)) }}
+    {{- include "apps-helpers.generateEnvYAML" $ }}
+    {{- include "apps-utils.leaveScope" $ }}
+    {{- end }}
     {{- include "apps.generateContainerEnvVars" (list $ . .envVars) | trim | nindent 0 }}
     {{- with (include "fl.value" (list $ . .env) | trim) }}
     {{- . | nindent 0}}
@@ -166,6 +172,7 @@ spec:
     {{- with (include "fl.generateContainerFromSecretsEnvVars" (list $ . .fromSecretsEnvVars) | trim) }}
     {{- . | nindent 0 }}
     {{- end }}
+
     {{- end }}
 {{- end }}
 {{- define "apps-helpers.genereteContainersEnvFrom" }}
@@ -178,6 +185,26 @@ spec:
 - secretRef:
     name: {{ print "envs-" $.CurrentApp._currentContainersType "-" $.CurrentApp.name "-" .name | include "fl.formatStringAsDNSLabel" | quote }}
     {{- end }}
+    {{- end }}
+{{- end }}
+
+{{- define "apps-helpers.generateEnvYAML" }}
+    {{- $ := . }}
+    {{- $envs := $.CurrentEnvYAML.envs }}
+    {{- range $key, $value := $envs }}
+    {{- include "apps-utils.enterScope" (list $ $key) }}
+    {{- if kindIs "map" $value }}
+    {{- if hasKey $value "_default" }}
+    {{- if not (kindIs "map" $.CurrentContainer.envVars) }}
+    {{- $_ := set $.CurrentContainer "envVars" dict }}
+    {{- end }}
+    {{- $_ := set $.CurrentContainer.envVars (slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | snakecase | upper) $value }}
+    {{- end }}
+    {{- $_ := set $.CurrentEnvYAML "envs" $value }}
+    {{- include "apps-helpers.generateEnvYAML" $ }}
+    {{- else }}
+    {{- end }}
+    {{- include "apps-utils.leaveScope" $ }}
     {{- end }}
 {{- end }}
 
