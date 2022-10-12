@@ -191,16 +191,24 @@ spec:
 {{- define "apps-helpers.generateEnvYAML" }}
     {{- $ := . }}
     {{- $envs := $.CurrentEnvYAML.envs }}
-    {{- range $key, $value := $envs }}
-    {{- include "apps-utils.enterScope" (list $ $key) }}
-    {{- if kindIs "map" $value }}
-    {{- if hasKey $value "_default" }}
+    {{- range $CurrentEnvKey, $CurrentEnvDict := $envs }}
+    {{- include "apps-utils.enterScope" (list $ $CurrentEnvKey) }}
+    {{- if kindIs "map" $CurrentEnvDict }}
+    {{- if hasKey $CurrentEnvDict "_default" }}
     {{- if not (kindIs "map" $.CurrentContainer.envVars) }}
     {{- $_ := set $.CurrentContainer "envVars" dict }}
     {{- end }}
-    {{- $_ := set $.CurrentContainer.envVars (slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | snakecase | upper) $value }}
+    {{- $envName := slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | snakecase | upper }}
+    {{- if hasKey $CurrentEnvDict "name" }}
+    {{- $envName = $CurrentEnvDict.name }}
     {{- end }}
-    {{- $_ := set $.CurrentEnvYAML "envs" $value }}
+    {{- if hasKey $.CurrentContainer.envVars $envName }}
+    {{- $_ := set $.CurrentContainer.envVars $envName (mergeOverwrite $CurrentEnvDict (index $.CurrentContainer.envVars $envName)) }}
+    {{- else }}
+    {{- $_ := set $.CurrentContainer.envVars $envName $CurrentEnvDict }}
+    {{- end }}
+    {{- end }}
+    {{- $_ := set $.CurrentEnvYAML "envs" $CurrentEnvDict }}
     {{- include "apps-helpers.generateEnvYAML" $ }}
     {{- else }}
     {{- end }}

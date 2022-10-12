@@ -1114,10 +1114,14 @@ spec:
         - name: "test"
           image:
           env:
+            - name: "ALTER_NAME_YAML"
+              value: "default value"
             - name: "TEST_APP_LEVEL1_LEVEL2_TEST"
               value: "default value"
             - name: "TEST_APP_LEVEL1_TEST_ENV3"
-              value: "prod value"
+              value: "from envYAML"
+            - name: "TEST_APP_LEVEL1_TEST_ENV4"
+              value: "prod value from envVars"
       imagePullSecrets:
         - name: registrysecret
       priorityClassName: "production-medium"
