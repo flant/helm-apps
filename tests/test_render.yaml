@@ -1116,11 +1116,11 @@ spec:
           env:
             - name: "ALTER_NAME_YAML"
               value: "default value"
-            - name: "TEST_APP_LEVEL1_LEVEL2_TEST"
+            - name: "TESTAPP_LEVEL1_LEVEL2_TEST"
               value: "default value"
-            - name: "TEST_APP_LEVEL1_TEST_ENV3"
+            - name: "TESTAPP_LEVEL1_TESTENV3"
               value: "from envYAML"
-            - name: "TEST_APP_LEVEL1_TEST_ENV4"
+            - name: "TESTAPP_LEVEL1_TESTENV4"
               value: "prod value from envVars"
       imagePullSecrets:
         - name: registrysecret

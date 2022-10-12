@@ -1997,11 +1997,11 @@ test-env-yaml:
     containers:
       test:
         envVars:
-          TEST_APP_LEVEL1_TEST_ENV3:
+          TESTAPP_LEVEL1_TESTENV3:
             _default: default value from envVars
-          TEST_APP_LEVEL1_TEST_ENV4:
+          TESTAPP_LEVEL1_TESTENV4:
             prod: prod value from envVars
-          TEST_APP_LEVEL1_MUST_DELETED_ENV:
+          TESTAPP_LEVEL1_MUSTDELETEDENV:
             prod: ""
         envYAML:
           testApp:
