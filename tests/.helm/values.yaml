@@ -1996,6 +1996,13 @@ test-env-yaml:
     _include: ["apps-stateless-defaultApp"]
     containers:
       test:
+        envVars:
+          TEST_APP_LEVEL1_TEST_ENV3:
+            _default: default value from envVars
+          TEST_APP_LEVEL1_TEST_ENV4:
+            prod: prod value from envVars
+          TEST_APP_LEVEL1_MUST_DELETED_ENV:
+            prod: ""
         envYAML:
           testApp:
             level1:
@@ -2004,7 +2011,15 @@ test-env-yaml:
                 test: test ignored  #ошибка, будет проигнорировано - в описании перемнной обязательно должен быть ключ "_default"
               testEnv3:
                 _default:  default value #ошибки нет, в описании перемнной обязательно должен быть ключ "_default"
-                prod: prod value
+                prod: from envYAML
+              testEnv4:
+                _default: default value
+                prod: prod value from envYAML
+              alterName1:
+                name: ALTER_NAME_YAML
+                _default: default value
+              mustDeletedEnv:
+                _default: must deleted in prod
               level2:
                 test:
                   _default: default value #ошибки нет, в описании перемнной обязательно должен быть ключ "_default"
