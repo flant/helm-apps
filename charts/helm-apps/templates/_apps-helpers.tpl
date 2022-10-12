@@ -198,7 +198,7 @@ spec:
     {{- if not (kindIs "map" $.CurrentContainer.envVars) }}
     {{- $_ := set $.CurrentContainer "envVars" dict }}
     {{- end }}
-    {{- $envName := slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | snakecase | upper }}
+    {{- $envName := slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | upper }}
     {{- if hasKey $CurrentEnvDict "name" }}
     {{- $envName = $CurrentEnvDict.name }}
     {{- end }}
