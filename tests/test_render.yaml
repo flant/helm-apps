@@ -117,7 +117,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: "hpa-app"
+      app: my-selector
   maxUnavailable: 15%
 ---
 # Helm Apps Library: apps-stateless.app-1.podDisruptionBudget
@@ -816,6 +816,24 @@ subjects:
     name: test-app-2
     namespace: test-prod
 ---
+# Helm Apps Library: test-hpa.hpa-app.service
+apiVersion: v1
+kind: Service
+metadata:
+  name: "hpa-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "hpa-app"
+    chart: "tests"
+    repo: ""
+spec:
+  ports:
+    - name: http
+      port: 80
+  selector:
+    app: my-selector
+---
 # Helm Apps Library: apps-stateless.app-1.service
 apiVersion: v1
 kind: Service
@@ -1212,7 +1230,7 @@ spec:
       priorityClassName: "production-medium"
   selector:
     matchLabels:
-      app: "hpa-app"
+      app: my-selector
   revisionHistoryLimit: 3
 ---
 # Source: tests/templates/init-helm-apps-library.yaml
