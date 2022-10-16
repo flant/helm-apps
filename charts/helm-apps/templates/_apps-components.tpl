@@ -71,7 +71,11 @@ kind: PodDisruptionBudget
 spec:
   selector:
     matchLabels:
-{{-       include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim | nindent 6 }}
+{{-         if empty (include "fl.value" (list $ . $.CurrentApp.selector)) }}
+{{-            include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim | nindent 6 }}
+{{- else }}
+{{-            $.CurrentApp.selector | trim | nindent 6 }}
+{{- end }}
 {{- with include "fl.value" (list $ . .maxUnavailable) }}
   maxUnavailable: {{ . }}
 {{- end }}
@@ -93,7 +97,9 @@ spec:
 {{-         include "apps-utils.enterScope" (list $ "service") }}
 ---
 {{-         include "apps-utils.printPath" $ }}
-{{-         $_ := set $service "selector" (include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim) }}
+{{-         if empty (include "fl.value" (list $ . $service.selector)) }}
+{{-           $_ := set $service "selector" (include "fl.generateSelectorLabels" (list $ . $.CurrentApp.name) | trim) }}
+{{-         end }}
 {{-         if include "fl.isTrue" (list $ . $service.headless) }}
 {{-           $_ := set $service "clusterIP" "None" }}
 {{-         end }}
