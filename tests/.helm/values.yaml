@@ -1923,6 +1923,8 @@ test-hpa:
     type: apps-stateless
   hpa-app:
     _include: ["apps-stateless-defaultApp"]
+    selector: |
+      app: my-selector
     containers:
       main:
         image:
@@ -1978,7 +1980,13 @@ test-hpa:
           # https://deckhouse.io/ru/documentation/v1/modules/301-prometheus-metrics-adapter/cr.html
           query: 'sum(rate(sidekiq_jobs_enqueued_total{<<.LabelMatchers>>, queue="default"}[1m])) by (<<.GroupBy>>)'
     service:
+      enabled: true
       name: "{{ $.CurrentApp.name }}"
+      ports: |
+        - name: http
+          port: 80
+      selector: |
+        app: my-selector
 
 apps-services:
   service-1:

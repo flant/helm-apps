@@ -12,8 +12,13 @@
 {{- $ := index . 0 }}
 {{- $relativeScope := index . 1 }}
 {{- with $relativeScope }}
-matchLabels: {{- include "fl.generateSelectorLabels" (list $ . .name) | nindent 2 }}
-{{- $_ := set . "__specName__" "selector"}}
+matchLabels:
+{{-  if empty (include "fl.value" (list $ . .selector)) }}
+{{- include "fl.generateSelectorLabels" (list $ . .name) | nindent 2 }}
+{{- else }}
+{{- .selector | nindent 2}}
+{{- end }}
+{{- $_ := set . "__specName__" "selector" }}
 {{- end }}
 {{- end }}
 
