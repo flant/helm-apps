@@ -200,6 +200,7 @@
 
 {{- define "apps-utils.init-library" }}
 {{- $ := . }}
+{{- include "apps-utils.includesFromFiles" $ }}
 {{- $_ := include "fl.expandIncludesInValues" (list $ $.Values) }}
 {{- include "apps-utils.findApps" $ }}
 ---
@@ -251,4 +252,25 @@
 
 {{- define "apps-utils.printPath" }}
 {{-   printf "\n---\n# Helm Apps Library: %s" (.CurrentPath | join ".") }}
+{{- end }}
+
+{{- define "apps-utils.includesFromFiles" }}
+{{- $_ := set $ "HelmAppsArgs" (dict "owner" . "current" .Values "currentName" "Values")}}
+{{- include "apps-utils._includesFromFiles" . }}
+{{- end }}
+
+{{- define "apps-utils._includesFromFiles" }}
+{{- $ := . }}
+{{- if kindIs "map" $.HelmAppsArgs.current }}
+{{- if hasKey $.HelmAppsArgs.current "_include_from_file" }}
+{{- $_ := set $.HelmAppsArgs.owner $.HelmAppsArgs.currentName (mergeOverwrite ($.Files.Get $.HelmAppsArgs.current._include_from_file | fromYaml) $.HelmAppsArgs.current) }}
+{{- $_ = unset $.HelmAppsArgs.current "_include_from_file" }}
+{{- end }}
+{{- range $k, $v :=  $.HelmAppsArgs.current }}
+{{- if kindIs "map" $v }}
+{{- $_ := set $ "HelmAppsArgs" (dict "owner" $.HelmAppsArgs.current "current" $v "currentName" $k) }}
+{{- include "apps-utils._includesFromFiles" $ }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}

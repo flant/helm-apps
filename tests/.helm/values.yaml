@@ -21,106 +21,9 @@ global:
   _includes:
     apps-defaults:
       enabled: false
-    apps-default-library-app:
-      _include: ["apps-defaults"]
-      # CLIENT: ask if this is ok for a defaul
-      imagePullSecrets: |
-        - name: registrysecret
-    ## Конфигурация по умолчанию для CronJob в целом.
-    apps-cronjobs-defaultCronJob:
-      _include: ["apps-default-library-app"]
-      concurrencyPolicy: "Forbid"
-      successfulJobsHistoryLimit: 1
-      failedJobsHistoryLimit: 1
-      backoffLimit: 0
-      priorityClassName:
-        prod: "production-high"
-      restartPolicy: "Never"
-      startingDeadlineSeconds: 60
-      verticalPodAutoscaler:
-        enabled: true
-        updateMode: "Off"
-        resourcePolicy: |
-          {}
-
-    apps-secrets-defaultSecret:
-      _include: ["apps-defaults"]
-
-    apps-ingresses-defaultIngress:
-      _include: ["apps-defaults"]
-      class: "nginx"
-
-    apps-jobs-defaultJob:
-      _include: ["apps-default-library-app"]
-      backoffLimit: 0
-      priorityClassName:
-        prod: "production-high"
-      restartPolicy: "Never"
-      verticalPodAutoscaler:
-        enabled: true
-        updateMode: "Off"
-        resourcePolicy: |
-          {}
-
-    apps-stateful-defaultApp:
-      _include: ["apps-default-library-app"]
-      revisionHistoryLimit: 3
-      terminationGracePeriodSeconds:
-        _default: 30
-        prod: 60
-      affinity: |
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchLabels: {{ include "fl.generateSelectorLabels" (list $ . .name) | nindent 22 }}
-              topologyKey: kubernetes.io/hostname
-            weight: 10
-      priorityClassName:
-        prod: "production-medium"
-      podDisruptionBudget:
-        enabled: true
-        maxUnavailable: "15%"
-      verticalPodAutoscaler:
-        enabled: true
-        updateMode: "Off"
-      service:
-        enabled: false
-        name: "{{ $.CurrentApp.name }}"
-        headless: true
-
-    apps-stateless-defaultApp:
-      _include: ["apps-default-library-app"]
-      revisionHistoryLimit: 3
-      strategy:
-        _default: |
-          rollingUpdate:
-            maxSurge: 20%
-            maxUnavailable: 50%
-          type: RollingUpdate
-        prod: |
-          rollingUpdate:
-            maxSurge: 20%
-            maxUnavailable: 25%
-          type: RollingUpdate
-      priorityClassName:
-        prod: "production-medium"
-      podDisruptionBudget:
-        enabled: true
-        maxUnavailable: "15%"
-      verticalPodAutoscaler:
-        enabled: true
-        updateMode: "Off"
-        resourcePolicy: |
-          {}
-      horizontalPodAutoscaler:
-        enabled: false
-      service:
-        enabled: false
-        name: "{{ $.CurrentApp.name }}"
-
-    apps-configmaps-defaultConfigmap:
-      _include: ["apps-defaults"]
+    _include_from_file: helm-apps-defaults.yaml
+    test-include-from-file:
+      _include_from_file: config/test-include.yaml
 
 
 ## Имя чарта. Ниже перечисляются ConfigMaps для развертывания.
@@ -2004,6 +1907,9 @@ test-env-yaml:
     _include: ["apps-stateless-defaultApp"]
     containers:
       test:
+        secretEnvVars:
+          TEST_APP_LEVEL1_TEST_ENV3:
+            _default: default value from envVars
         envVars:
           TESTAPP_LEVEL1_TESTENV3:
             _default: default value from envVars
@@ -2031,3 +1937,22 @@ test-env-yaml:
               level2:
                 test:
                   _default: default value #ошибки нет, в описании перемнной обязательно должен быть ключ "_default"
+        configFiles:
+          conf:
+            mountPath: /config
+            content: |
+              test
+        configFilesYAML:
+          config:
+            mountPath: /config
+            content:
+              _include: ["test-include-from-file"]
+              overwrited:
+                _default: default value from values.yaml
+              testIncludeVar:
+                _default: default value from values.yaml
+              testIncludeVarMustOverwrited:
+                _default: default value from values.yaml
+                prod: prod value from values.yaml
+
+

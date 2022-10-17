@@ -1,0 +1,7 @@
+testIncludeVar:
+  _default: redaultvalue from file
+  prod: prod value from file
+testIncludeVarMustOverwrited:
+  _default: default from file
+  prod: prod value from file
+overwrited: value from file
