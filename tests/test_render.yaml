@@ -248,6 +248,21 @@ metadata:
     chart: "tests"
     repo: ""
 ---
+# Helm Apps Library: test-env-yaml.env-yaml-app.containers.test.secretEnvVars
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "envs-containers-env-yaml-app-test"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+type: Opaque
+data:
+  "TEST_APP_LEVEL1_TEST_ENV3": "ZGVmYXVsdCB2YWx1ZSBmcm9tIGVudlZhcnM="
+---
 # Helm Apps Library: apps-stateless.app-1.initContainers.init-container-1.secret.conf
 apiVersion: v1
 kind: Secret
@@ -541,6 +556,38 @@ data:
   "TEST2": "dmFsMg=="
   "secret.conf": "cGxhaW5UZXh0TGluZTEKcGxhaW5UZXh0TGluZTIK"
   "secret2.conf": "cGxhaW5UZXh0TGluZTEK"
+---
+# Helm Apps Library: test-env-yaml.env-yaml-app.containers.test.configFiles.conf
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "config-containers-env-yaml-app-test-conf"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+data:
+  "conf": |
+    test
+---
+# Helm Apps Library: test-env-yaml.env-yaml-app.containers.test.configFilesYAML.config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "config-yaml-containers-env-yaml-app-test-config"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+data:
+  "config": |
+    overwrited: default value from values.yaml
+    testIncludeVar: default value from values.yaml
+    testIncludeVarMustOverwrited: prod value from values.yaml
 ---
 # Helm Apps Library: apps-stateless.app-1.initContainers.init-container-1.configFiles.nginx.conf
 apiVersion: v1
@@ -1106,7 +1153,7 @@ kind: Deployment
 metadata:
   name: "env-yaml-app"
   annotations:
-    checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    checksum/config: "bc777c0f0207633ea7a6b7865d12e535294e500d9d6247ed7ce1f43a286d6577"
     helm-apps/version: "TEST"
   labels:
     app: "env-yaml-app"
@@ -1122,7 +1169,7 @@ spec:
     metadata:
       name: "env-yaml-app"
       annotations:
-        checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        checksum/config: "bc777c0f0207633ea7a6b7865d12e535294e500d9d6247ed7ce1f43a286d6577"
       labels:
         app: "env-yaml-app"
         chart: "tests"
@@ -1140,8 +1187,25 @@ spec:
               value: "from envYAML"
             - name: "TESTAPP_LEVEL1_TESTENV4"
               value: "prod value from envVars"
+          envFrom:
+            - secretRef:
+                name: "envs-containers-env-yaml-app-test"
+          volumeMounts:
+            - name: "config-containers-env-yaml-app-test-conf"
+              subPath: "conf"
+              mountPath: "/config"
+            - name: "config-yaml-containers-env-yaml-app-test-config"
+              subPath: "config"
+              mountPath: "/config"
       imagePullSecrets:
         - name: registrysecret
+      volumes:
+        - name: "config-containers-env-yaml-app-test-conf"
+          configMap:
+            name: "config-containers-env-yaml-app-test-conf"
+        - name: "config-yaml-containers-env-yaml-app-test-config"
+          configMap:
+            name: "config-yaml-containers-env-yaml-app-test-config"
       priorityClassName: "production-medium"
   selector:
     matchLabels:

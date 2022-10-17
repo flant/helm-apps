@@ -208,6 +208,29 @@ data:
 {{-           end }}
 {{-         end }}
 {{-           include "apps-utils.leaveScope" $ }}
+{{- /* ConfigMaps created by "configFilesYAML:" option */ -}}
+{{-   include "apps-utils.enterScope" (list $ "configFilesYAML") }}
+{{-         range $configFileName, $configFile := .configFilesYAML }}
+{{-           if kindIs "map" .content }}
+{{-           include "apps-utils.enterScope" (list $ $configFileName) }}
+---
+{{- include "apps-utils.printPath" $ }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ print "config-yaml-" $containersType "-" $.CurrentApp.name "-" $.CurrentContainer.name "-" $configFileName | include "fl.formatStringAsDNSLabel" | quote }}
+  {{- with  include "apps-helpers.generateAnnotations" (list $ .) | trim }}
+  {{- . | nindent 2 }}
+  {{- end }}
+  labels: {{ include "fl.generateLabels" (list $ . $.CurrentApp.name) | trim | nindent 4 }}
+data:
+{{- $_ := set $ "CurrentConfigYAML" (dict "local" . "content" .) }}
+{{- include "apps-helpers.generateConfigYAML" $ }}
+  {{ $configFileName | quote }}: | {{ toYaml .content | trim | nindent 4 }}
+{{-           include "apps-utils.leaveScope" $ }}
+{{-           end }}
+{{-         end }}
+{{-           include "apps-utils.leaveScope" $ }}
 {{- /* Secrets created by "secretConfigFiles:" option */ -}}
 {{-         range $secretConfigFileName, $secretConfigFile := .secretConfigFiles }}
 {{-           if include "fl.value" (list $ . .content) }}
@@ -259,19 +282,33 @@ data: {{ include "fl.generateSecretEnvVars" (list $ . .secretEnvVars) | trim | n
 {{-   $allConfigMaps := "" }}
 {{-   range $_, $containersType := list "initContainers" "containers" }}
 {{-     range $_containerName, $_container := index $.CurrentApp $containersType }}
+{{-         $_ := set $ "CurrentContainer" . }}
 {{- if hasKey . "enabled" }}
 {{-       if include "fl.isTrue" (list $ . .enabled) }}
-{{-         range $configFileName, $configFile := .configFiles }}
-{{-           $allConfigMaps = print $allConfigMaps (include "fl.value" (list $ $RelatedScope $configFile.content)) }}
-{{-         end }}
+{{-           $allConfigMaps = print $allConfigMaps (include "apps-components._generate-config-checksum" $) }}
 {{-       end }}
 {{- else }}
-{{-         range $configFileName, $configFile := .configFiles }}
-{{-           $allConfigMaps = print $allConfigMaps (include "fl.value" (list $ $RelatedScope $configFile.content)) }}
-{{-         end }}
+{{-           $allConfigMaps = print $allConfigMaps (include "apps-components._generate-config-checksum" $) }}
 {{- end }}
 {{-   end }}
 
 {{-   end }}
 {{-   printf "checksum/config: '%s'" ($allConfigMaps | sha256sum) }}
+{{- end }}
+
+{{- define "apps-components._generate-config-checksum" }}
+{{- $ := . }}
+{{- with $.CurrentApp }}
+{{-         range $_, $configFile := $.CurrentContainer.configFiles }}
+{{-           print (include "fl.value" (list $ . $configFile.content)) }}
+{{-         end }}
+{{-         range $_, $configFile :=  $.CurrentContainer.secretFiles }}
+{{-           print (include "fl.value" (list $ . $configFile.content)) }}
+{{-         end }}
+{{-         range $_, $configFile :=  $.CurrentContainer.configFilesYAML }}
+{{- $_ := set $ "CurrentConfigYAML" (dict "local" $.CurrentApp "content" $configFile.content) }}
+{{- include "apps-helpers.generateConfigYAML" $ }}
+{{- $configFile.content | toYaml }}
+{{-         end }}
+{{- end }}
 {{- end }}

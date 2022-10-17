@@ -19,9 +19,24 @@
 - name: {{ print "config-" $containersType "-" $.CurrentApp.name "-" $.CurrentContainer.name "-" $configFileName | include "fl.formatStringAsDNSLabel" | quote }}
   configMap:
     name: {{ .name | quote }}
-    {{- with include "fl.value" (list $ . .defaultMode) }}
+      {{- with include "fl.value" (list $ . .defaultMode) }}
     defaultMode: {{ . }}
-    {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- range $configFileName, $_ := .configFilesYAML }}
+      {{- if kindIs "map" .content }}
+      {{- $_ := set . "name" (print "config-yaml-" $containersType "-" $.CurrentApp.name "-" $.CurrentContainer.name "-" $configFileName | include "fl.formatStringAsDNSLabel") }}
+      {{- else }}
+      {{- if not ( include "fl.value" (list $ . .name)) }}
+      {{- fail (printf "Для app '%s' %s '%s' в configFiles '%s' нет content и забыли указать .name" $.CurrentApp.name $containersType $.CurrentContainer.name $configFileName) }}
+      {{- end }}
+      {{- end }}
+- name: {{ print "config-yaml-" $containersType "-" $.CurrentApp.name "-" $.CurrentContainer.name "-" $configFileName | include "fl.formatStringAsDNSLabel" | quote }}
+  configMap:
+    name: {{ .name | quote }}
+      {{- with include "fl.value" (list $ . .defaultMode) }}
+    defaultMode: {{ . }}
+      {{- end }}
       {{- end }}
       {{- /* Mount Secrets created by "secretConfigFiles:" option as volumes */ -}}
       {{- range $secretConfigFileName, $_ := .secretConfigFiles }}
@@ -52,8 +67,14 @@
   subPath: {{ $configFileName | quote }}
   mountPath: {{ include "fl.valueQuoted" (list $ . .mountPath) }}
     {{- end }}
-    {{- end -}}
-
+    {{- end }}
+    {{- range $configFileName, $configFile := $.CurrentContainer.configFilesYAML }}
+    {{- if or (kindIs "map" .content) (include "fl.value" (list $ . .name)) }}
+- name: {{ print "config-yaml-" $.CurrentApp._currentContainersType "-" $.CurrentApp.name "-" $.CurrentContainer.name "-" $configFileName | include "fl.formatStringAsDNSLabel" | quote }}
+  subPath: {{ $configFileName | quote }}
+  mountPath: {{ include "fl.valueQuoted" (list $ . .mountPath) }}
+    {{- end }}
+    {{- end }}
     {{- /* Mount secret files from ConfigMaps created by "secretConfigFiles:" option */ -}}
     {{- range $secretConfigFileName, $secretConfigFile := $.CurrentContainer.secretConfigFiles }}
 - name: {{ print "config-" $.CurrentApp._currentContainersType "-" $.CurrentApp.name "-" $.CurrentContainer.name "-" $secretConfigFileName | include "fl.formatStringAsDNSLabel" | quote }}
@@ -188,34 +209,6 @@ spec:
     {{- end }}
 {{- end }}
 
-{{- define "apps-helpers.generateEnvYAML" }}
-    {{- $ := . }}
-    {{- $envs := $.CurrentEnvYAML.envs }}
-    {{- range $CurrentEnvKey, $CurrentEnvDict := $envs }}
-    {{- include "apps-utils.enterScope" (list $ $CurrentEnvKey) }}
-    {{- if kindIs "map" $CurrentEnvDict }}
-    {{- if hasKey $CurrentEnvDict "_default" }}
-    {{- if not (kindIs "map" $.CurrentContainer.envVars) }}
-    {{- $_ := set $.CurrentContainer "envVars" dict }}
-    {{- end }}
-    {{- $envName := slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | upper }}
-    {{- if hasKey $CurrentEnvDict "name" }}
-    {{- $envName = $CurrentEnvDict.name }}
-    {{- end }}
-    {{- if hasKey $.CurrentContainer.envVars $envName }}
-    {{- $_ := set $.CurrentContainer.envVars $envName (mergeOverwrite $CurrentEnvDict (index $.CurrentContainer.envVars $envName)) }}
-    {{- else }}
-    {{- $_ := set $.CurrentContainer.envVars $envName $CurrentEnvDict }}
-    {{- end }}
-    {{- end }}
-    {{- $_ := set $.CurrentEnvYAML "envs" $CurrentEnvDict }}
-    {{- include "apps-helpers.generateEnvYAML" $ }}
-    {{- else }}
-    {{- end }}
-    {{- include "apps-utils.leaveScope" $ }}
-    {{- end }}
-{{- end }}
-
 {{- define "apps-helpers.jobTemplate" }}
     {{- $ := index . 0 }}
     {{- $RelatedScope := index . 1 }}
@@ -320,3 +313,48 @@ metadata:
 {{- include "apps-utils.leaveScope" $ }}
 {{- end -}}
 
+{{- define "apps-helpers.generateEnvYAML" }}
+    {{- $ := . }}
+    {{- $envs := $.CurrentEnvYAML.envs }}
+    {{- range $CurrentEnvKey, $CurrentEnvDict := $envs }}
+    {{- include "apps-utils.enterScope" (list $ $CurrentEnvKey) }}
+    {{- if kindIs "map" $CurrentEnvDict }}
+    {{- if hasKey $CurrentEnvDict "_default" }}
+    {{- if not (kindIs "map" $.CurrentContainer.envVars) }}
+    {{- $_ := set $.CurrentContainer "envVars" dict }}
+    {{- end }}
+    {{- $envName := slice $.CurrentPath $.CurrentEnvYAML.startPathLength | join "_" | upper }}
+    {{- if hasKey $CurrentEnvDict "name" }}
+    {{- $envName = $CurrentEnvDict.name }}
+    {{- end }}
+    {{- if hasKey $.CurrentContainer.envVars $envName }}
+    {{- $_ := set $.CurrentContainer.envVars $envName (mergeOverwrite $CurrentEnvDict (index $.CurrentContainer.envVars $envName)) }}
+    {{- else }}
+    {{- $_ := set $.CurrentContainer.envVars $envName $CurrentEnvDict }}
+    {{- end }}
+    {{- end }}
+    {{- $_ := set $.CurrentEnvYAML "envs" $CurrentEnvDict }}
+    {{- include "apps-helpers.generateEnvYAML" $ }}
+    {{- else }}
+    {{- end }}
+    {{- include "apps-utils.leaveScope" $ }}
+    {{- end }}
+{{- end }}
+
+{{- define "apps-helpers.generateConfigYAML" }}
+    {{- $ := . }}
+    {{- $content := $.CurrentConfigYAML.content }}
+    {{- range $CurrentKey, $CurrentDict := $content }}
+    {{- include "apps-utils.enterScope" (list $ $CurrentKey) }}
+    {{- if kindIs "map" $CurrentDict }}
+    {{- if hasKey $CurrentDict "_default" }}
+    {{- $_ := set $content $CurrentKey (include "fl.value" (list $ . $CurrentDict))}}
+    {{- else }}
+    {{- $_ := set $.CurrentConfigYAML "content" $CurrentDict }}
+    {{- include "apps-helpers.generateConfigYAML" $ }}
+    {{- end }}
+    {{- else }}
+    {{- end }}
+    {{- include "apps-utils.leaveScope" $ }}
+    {{- end }}
+{{- end }}
