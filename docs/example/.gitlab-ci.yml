@@ -11,4 +11,4 @@ before_script:
 - set -eo pipefail
 - type trdl && source $(trdl use werf ${WERF_VERSION:-1.2 ea})
 - type werf && source $(werf ci-env gitlab --as-file)
-- werf helm repo add --force-update helm-apps https://flant.github.io/helm-apps
+- werf helm repo add --force-update helm-apps https://alvnukov.github.io/helm-apps
