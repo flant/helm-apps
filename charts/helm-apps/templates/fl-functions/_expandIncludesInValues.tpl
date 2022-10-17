@@ -109,6 +109,9 @@
 {{- define "fl._recursiveMapsMerge" }}
   {{- $ := index . 0 }}
   {{- $mapToMergeFrom := index . 1 }}
+  {{- if kindIs "map" $mapToMergeFrom }}
+  {{- $mapToMergeFrom = deepCopy $mapToMergeFrom }}
+  {{- end }}
   {{- $mapToMergeInto := index . 2 }}
 
   {{- range $keyToMergeFrom, $valToMergeFrom := $mapToMergeFrom }}
