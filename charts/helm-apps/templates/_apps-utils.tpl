@@ -263,7 +263,7 @@
 {{- $ := . }}
 {{- if kindIs "map" $.HelmAppsArgs.current }}
 {{- if hasKey $.HelmAppsArgs.current "_include_from_file" }}
-{{- $_ := set $.HelmAppsArgs.owner $.HelmAppsArgs.currentName (mergeOverwrite ($.Files.Get $.HelmAppsArgs.current._include_from_file | fromYaml)) $.HelmAppsArgs.current }}
+{{- $_ := set $.HelmAppsArgs.owner $.HelmAppsArgs.currentName (mergeOverwrite ($.Files.Get $.HelmAppsArgs.current._include_from_file | fromYaml) $.HelmAppsArgs.current) }}
 {{- $_ = unset $.HelmAppsArgs.current "_include_from_file" }}
 {{- end }}
 {{- range $k, $v :=  $.HelmAppsArgs.current }}

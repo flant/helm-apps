@@ -586,7 +586,7 @@ metadata:
 data:
   "config": |
     overwrited: default value from values.yaml
-    testIncludeVar: prod value from file
+    testIncludeVar: default value from values.yaml
     testIncludeVarMustOverwrited: prod value from values.yaml
 ---
 # Helm Apps Library: apps-stateless.app-1.initContainers.init-container-1.configFiles.nginx.conf
@@ -1153,7 +1153,7 @@ kind: Deployment
 metadata:
   name: "env-yaml-app"
   annotations:
-    checksum/config: "3076b6916b3e1848df7637187600e774ec2df03be44a34f4ec278473c29e4bfe"
+    checksum/config: "bc777c0f0207633ea7a6b7865d12e535294e500d9d6247ed7ce1f43a286d6577"
     helm-apps/version: "TEST"
   labels:
     app: "env-yaml-app"
@@ -1169,7 +1169,7 @@ spec:
     metadata:
       name: "env-yaml-app"
       annotations:
-        checksum/config: "3076b6916b3e1848df7637187600e774ec2df03be44a34f4ec278473c29e4bfe"
+        checksum/config: "bc777c0f0207633ea7a6b7865d12e535294e500d9d6247ed7ce1f43a286d6577"
       labels:
         app: "env-yaml-app"
         chart: "tests"
