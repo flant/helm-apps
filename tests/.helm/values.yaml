@@ -19,12 +19,9 @@ global:
   #
   # Подробнее: https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flexpandincludesinvalues-function
   _includes:
-    apps-defaults:
-      enabled: false
     _include_from_file: helm-apps-defaults.yaml
     test-include-from-file:
       _include_from_file: config/test-include.yaml
-
 
 ## Имя чарта. Ниже перечисляются ConfigMaps для развертывания.
 # Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.

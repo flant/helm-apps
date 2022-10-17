@@ -256,20 +256,25 @@
 
 {{- define "apps-utils.includesFromFiles" }}
 {{- $_ := set $ "HelmAppsArgs" (dict "owner" . "current" .Values "currentName" "Values")}}
-{{- include "apps-utils._includesFromFiles" . }}
+{{- include "apps-utils._includesFromFiles" (list . . .Values "Values") }}
 {{- end }}
 
 {{- define "apps-utils._includesFromFiles" }}
-{{- $ := . }}
-{{- if kindIs "map" $.HelmAppsArgs.current }}
-{{- if hasKey $.HelmAppsArgs.current "_include_from_file" }}
-{{- $_ := set $.HelmAppsArgs.owner $.HelmAppsArgs.currentName (mergeOverwrite ($.Files.Get $.HelmAppsArgs.current._include_from_file | fromYaml) $.HelmAppsArgs.current) }}
-{{- $_ = unset $.HelmAppsArgs.current "_include_from_file" }}
+{{- $ := index . 0 }}
+{{- $owner := index . 1 }}
+{{- $current := index . 2 }}
+{{- $currentName := index . 3 }}
+{{- if kindIs "map" $current }}
+{{- if hasKey $current "_include_from_file" }}
+{{- $dict := $.Files.Get $current._include_from_file | fromYaml }}
+{{- $currentDict := deepCopy $current}}
+{{- $_ := mergeOverwrite $dict $currentDict }}
+{{- $_ = mergeOverwrite $current $dict }}
+{{- $_ = unset $current "_include_from_file"}}
 {{- end }}
-{{- range $k, $v :=  $.HelmAppsArgs.current }}
+{{- range $k, $v :=  $current }}
 {{- if kindIs "map" $v }}
-{{- $_ := set $ "HelmAppsArgs" (dict "owner" $.HelmAppsArgs.current "current" $v "currentName" $k) }}
-{{- include "apps-utils._includesFromFiles" $ }}
+{{- include "apps-utils._includesFromFiles" (list $ $current $v $k) }}
 {{- end }}
 {{- end }}
 {{- end }}
