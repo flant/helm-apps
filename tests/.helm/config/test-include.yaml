@@ -5,3 +5,6 @@ testIncludeVarMustOverwrited:
   _default: default from file
   prod: prod value from file
 overwrited: value from file
+testValue: value from file
+testValueWithDefault:
+  _default: default value from file
