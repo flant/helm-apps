@@ -2,9 +2,13 @@
   {{- $ := index . 0 }}
   {{- $relativeScope := index . 1 }}
   {{- $data := index . 2 }}
+  {{- $upper := false }}
+  {{- if gt (len .) 3 }}
+  {{- $upper = true }}
+  {{- end -}}
 
   {{- range $key, $value := $data }}
-    {{- if $.Values.global.configFlantLibVariableUppercaseEnvs }}
+    {{- if $upper }}
       {{- $key = upper $key }}
     {{- end }}
     {{- $value = include "apps.value" (list $ $relativeScope $value $key) }}
