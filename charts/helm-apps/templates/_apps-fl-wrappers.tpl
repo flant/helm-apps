@@ -14,8 +14,15 @@
 
 {{- define "apps.generateConfigMapEnvVars" }}
 {{- $ := index . 0 }}
-{{- include "apps-utils.enterScope" (list $ "secretEnvVars") }}
+{{- include "apps-utils.enterScope" (list $ "EnvVars") }}
 {{- include "fl.generateConfigMapEnvVars" . }}
+{{- include "apps-utils.leaveScope" $ }}
+{{- end }}
+
+{{- define "apps.generateConfigMapData" }}
+{{- $ := index . 0 }}
+{{- include "apps-utils.enterScope" (list $ "data") }}
+{{- include "fl.generateConfigMapData" . }}
 {{- include "apps-utils.leaveScope" $ }}
 {{- end }}
 
