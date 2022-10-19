@@ -41,6 +41,8 @@ apps-configmaps:
         configline2
       something.conf: |
         configline1
+    binaryData: |
+      test.gz: jdbkjbkjsdbkjdbjdsbljl
     ## Содержание ConfigMap'а. Несекретные переменные окружения, пробрасываемые в контейнеры.
     # По итогу пробросится в ConfigMap.data.
     # https://github.com/flant/helm-charts/tree/master/.helm/charts/flant-lib#flgeneratecontainerenvvars-template
