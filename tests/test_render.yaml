@@ -774,6 +774,21 @@ binaryData:
   test.gz: jdbkjbkjsdbkjdbjdsbljl
 ---
 # Source: tests/templates/init-helm-apps-library.yaml
+# Helm Apps Library: apps-configmaps.configmap-2
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "configmap-2"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "configmap-2"
+    chart: "tests"
+    repo: ""
+data:
+  "nginx.conf": "configline1\nconfigline2 \n"
+---
+# Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-pvcs.test-pvc
 kind: PersistentVolumeClaim
 apiVersion: v1

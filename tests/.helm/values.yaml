@@ -49,6 +49,12 @@ apps-configmaps:
     envVars:
       TEST1: "val1"
       TEST2: "val2"
+  configmap-2:
+    _include: ["apps-configmaps-defaultConfigmap"]
+    data:
+      nginx.conf: |
+        configline1
+        configline2 
 
 ## Имя чарта. Ниже перечисляются CronJob'ы для развертывания.
 # Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
