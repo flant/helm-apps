@@ -2,7 +2,7 @@ apiVersion: v2
 name: helm-apps
 description: A Helm applications library
 type: library
-version: 1.2.2
+version: 1.2.3
 maintainers:
   - name: alvnukov
     url: https://github.com/alvnukov

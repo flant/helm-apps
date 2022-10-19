@@ -770,6 +770,8 @@ data:
     configline2
   something.conf: |
     configline1
+binaryData:
+  test.gz: jdbkjbkjsdbkjdbjdsbljl
 ---
 # Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-pvcs.test-pvc
