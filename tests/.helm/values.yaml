@@ -21,7 +21,7 @@ global:
   _includes:
     _include_from_file: helm-apps-defaults.yaml
     test-include-from-file:
-      _include_from_file: config/test-include.yaml
+      _include_from_file: config/test-include-from-file.yaml
 
 ## Имя чарта. Ниже перечисляются ConfigMaps для развертывания.
 # Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
@@ -1951,7 +1951,7 @@ test-env-yaml:
           config:
             mountPath: /config
             content:
-              _include: ["test-include-from-file"]
+              _include_files: ["config/test-include-files.yaml"]
               overwrited:
                 _default: default value from values.yaml
               testIncludeVar:

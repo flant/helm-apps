@@ -272,6 +272,20 @@
 {{- $_ = mergeOverwrite $current $dict }}
 {{- $_ = unset $current "_include_from_file"}}
 {{- end }}
+{{- if hasKey $current "_include_files" }}
+{{- $newInclude := list }}
+{{- range $_, $fileName := $current._include_files }}
+{{- $includeContent := $.Files.Get $fileName | fromYaml }}
+{{- $includeName := sha256sum $fileName }}
+{{- $_ := set $.Values.global._includes $includeName $includeContent }}
+{{- $newInclude = append $newInclude $includeName }}
+{{- end }}
+{{- if hasKey $current "_include" }}
+{{- $newInclude = concat $newInclude $current._include }}
+{{- end }}
+{{- $_ := set $current "_include" $newInclude }}
+{{- $_ = unset $current "_include_files"}}
+{{- end }}
 {{- range $k, $v :=  $current }}
 {{- if kindIs "map" $v }}
 {{- include "apps-utils._includesFromFiles" (list $ $current $v $k) }}
