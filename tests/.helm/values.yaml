@@ -1959,5 +1959,20 @@ test-env-yaml:
               testIncludeVarMustOverwrited:
                 _default: default value from values.yaml
                 prod: prod value from values.yaml
-
-
+              level1:
+                testMap: #эта мапка перезапишется
+                  _default:
+                    test1: 2v
+                    test2: 2v
+                  prod:
+                    testProd2: 2v
+                testMap2: #эта мапка смержится
+                  testNestedMap:
+                      nestedMap:
+                        test: 3v
+                  test: 2v
+                  test2:
+                    _default: 2v
+                    prod: 3v
+                  test3:
+                    _default: 2v

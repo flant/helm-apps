@@ -348,13 +348,20 @@ metadata:
     {{- include "apps-utils.enterScope" (list $ $CurrentKey) }}
     {{- if kindIs "map" $CurrentDict }}
     {{- if hasKey $CurrentDict "_default" }}
+    {{- $val := index $CurrentDict "_default" }}
+    {{- if hasKey $CurrentDict $.Values.global.env }}
+    {{- $val = index $CurrentDict $.Values.global.env }}
+    {{- end }}
+    {{- if kindIs "string" $val }}
     {{- $_ := set $content $CurrentKey (include "fl.value" (list $ . $CurrentDict))}}
+    {{- else }}
+    {{- $_ := set $content $CurrentKey  $val }}
+    {{- end }}
     {{- else }}
     {{- $_ := set $.CurrentConfigYAML "content" $CurrentDict }}
     {{- include "apps-helpers.generateConfigYAML" $ }}
     {{- end }}
-    {{- else }}
     {{- end }}
     {{- include "apps-utils.leaveScope" $ }}
     {{- end }}
-{{- end }}
+    {{- end }}

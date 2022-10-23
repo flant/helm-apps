@@ -12,6 +12,97 @@
 {{-     end }}
 {{- end }}
 
+
+
+{{- define "fl._recursiveMergeAndExpandIncludes" }}
+  {{- $ := index . 0 }}
+  {{- $mergeInto := index . 1 }}
+
+  {{- if kindIs "map" $mergeInto }}
+    {{- if hasKey $mergeInto "_include" }}
+      {{- $joinedIncludes := (include "fl._getJoinedIncludesInJson" (list $ $mergeInto._include) | fromJson).wrapper }}
+      {{- $_ := unset $mergeInto "_include" }}
+      {{- include "fl._recursiveMapsMerge" (list $ $joinedIncludes $mergeInto) }}
+      {{- include "fl.expandIncludesInValues" (list $ $mergeInto) }}
+    {{- else }}
+      {{- range $nestedKey, $nestedVal := $mergeInto }}
+        {{- if ne $nestedKey "_includes" }}
+          {{- include "fl.expandIncludesInValues" (list $ $nestedVal) }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "fl._getJoinedIncludesInJson" }}
+  {{- $ := index . 0 }}
+  {{- $includesNames := index . 1 }}
+
+  {{- $includesBodies := list }}
+  {{- range $_, $includeName := $includesNames }}
+    {{- $includesBodies = append $includesBodies (index $.Values.global._includes $includeName) }}
+  {{- end }}
+
+  {{- $joinedIncludesResult := dict }}
+  {{- range $i, $includeBody := reverse $includesBodies }}
+    {{- include "fl._recursiveMapsMerge" (list $ $includeBody $joinedIncludesResult) }}
+  {{- end }}
+  {{- dict "wrapper" $joinedIncludesResult | toJson }}
+{{- end }}
+
+{{- define "fl._recursiveMapsMerge" }}
+  {{- $ := index . 0 }}
+  {{- $mapToMergeFrom := index . 1 }}
+  {{- if kindIs "map" $mapToMergeFrom }}
+  {{- $mapToMergeFrom = deepCopy $mapToMergeFrom }}
+  {{- end }}
+  {{- $mapToMergeInto := index . 2 }}
+
+  {{- range $keyToMergeFrom, $valToMergeFrom := $mapToMergeFrom }}
+    {{- $valToMergeInto := index $mapToMergeInto $keyToMergeFrom }}
+
+    {{- if kindIs "map" $valToMergeFrom }}
+      {{- if kindIs "map" $valToMergeInto }}
+        {{- if not (hasKey $mapToMergeFrom "_default") }}
+        {{- include "fl._recursiveMapsMerge" (list $ $valToMergeFrom $valToMergeInto) }}
+      {{- end }}
+      {{- else if not (hasKey $mapToMergeInto $keyToMergeFrom) }}
+        {{- $_ := set $mapToMergeInto $keyToMergeFrom $valToMergeFrom }}
+      {{- end }}
+
+    {{- else if kindIs "slice" $valToMergeFrom }}
+      {{- if eq $keyToMergeFrom "_include" }}
+        {{- if kindIs "slice" $valToMergeInto }}
+          {{- $joinedIncludes := (include "fl._concatLists" (list $valToMergeFrom $valToMergeInto) | fromJson).wrapper }}
+          {{- $_ := unset $mapToMergeInto "_include" }}
+          {{- $_ := set $mapToMergeInto "_include" $joinedIncludes }}
+        {{- else }}
+          {{- $_ := unset $mapToMergeInto "_include" }}
+          {{- $_ := set $mapToMergeInto "_include" $valToMergeFrom }}
+        {{- end }}
+      {{- end }}
+
+    {{- else }}
+      {{- if not (hasKey $mapToMergeInto $keyToMergeFrom) }}
+        {{- $_ := set $mapToMergeInto $keyToMergeFrom $valToMergeFrom }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "fl._concatLists" }}
+  {{- $lists := index . }}
+
+  {{- $result := list }}
+  {{- range $_, $list := $lists }}
+    {{- range $_, $list_elem := $list }}
+      {{- $result = append $result $list_elem }}
+    {{- end }}
+  {{- end }}
+  {{- dict "wrapper" $result | toJson }}
+{{- end }}
+
+
 {{- define "_fl.make_includes_from" }}
 {{-     $ := index . 0 }}
 {{-     $prevContext := index . 1 }}
@@ -68,90 +159,4 @@
 {{-     $tmpMap = get $tmpMap $path }}
 {{-     end }}
 {{-     toJson $tmpMap }}
-{{- end }}
-
-{{- define "fl._recursiveMergeAndExpandIncludes" }}
-  {{- $ := index . 0 }}
-  {{- $mergeInto := index . 1 }}
-
-  {{- if kindIs "map" $mergeInto }}
-    {{- if hasKey $mergeInto "_include" }}
-      {{- $joinedIncludes := (include "fl._getJoinedIncludesInJson" (list $ $mergeInto._include) | fromJson).wrapper }}
-      {{- $_ := unset $mergeInto "_include" }}
-      {{- include "fl._recursiveMapsMerge" (list $ $joinedIncludes $mergeInto) }}
-      {{- include "fl.expandIncludesInValues" (list $ $mergeInto) }}
-    {{- else }}
-      {{- range $nestedKey, $nestedVal := $mergeInto }}
-        {{- if ne $nestedKey "_includes" }}
-          {{- include "fl.expandIncludesInValues" (list $ $nestedVal) }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "fl._getJoinedIncludesInJson" }}
-  {{- $ := index . 0 }}
-  {{- $includesNames := index . 1 }}
-
-  {{- $includesBodies := list }}
-  {{- range $_, $includeName := $includesNames }}
-    {{- $includesBodies = append $includesBodies (index $.Values.global._includes $includeName) }}
-  {{- end }}
-
-  {{- $joinedIncludesResult := dict }}
-  {{- range $i, $includeBody := reverse $includesBodies }}
-    {{- include "fl._recursiveMapsMerge" (list $ $includeBody $joinedIncludesResult) }}
-  {{- end }}
-  {{- dict "wrapper" $joinedIncludesResult | toJson }}
-{{- end }}
-
-{{- define "fl._recursiveMapsMerge" }}
-  {{- $ := index . 0 }}
-  {{- $mapToMergeFrom := index . 1 }}
-  {{- if kindIs "map" $mapToMergeFrom }}
-  {{- $mapToMergeFrom = deepCopy $mapToMergeFrom }}
-  {{- end }}
-  {{- $mapToMergeInto := index . 2 }}
-
-  {{- range $keyToMergeFrom, $valToMergeFrom := $mapToMergeFrom }}
-    {{- $valToMergeInto := index $mapToMergeInto $keyToMergeFrom }}
-
-    {{- if kindIs "map" $valToMergeFrom }}
-      {{- if kindIs "map" $valToMergeInto }}
-        {{- include "fl._recursiveMapsMerge" (list $ $valToMergeFrom $valToMergeInto) }}
-      {{- else if not (hasKey $mapToMergeInto $keyToMergeFrom) }}
-        {{- $_ := set $mapToMergeInto $keyToMergeFrom $valToMergeFrom }}
-      {{- end }}
-
-    {{- else if kindIs "slice" $valToMergeFrom }}
-      {{- if eq $keyToMergeFrom "_include" }}
-        {{- if kindIs "slice" $valToMergeInto }}
-          {{- $joinedIncludes := (include "fl._concatLists" (list $valToMergeFrom $valToMergeInto) | fromJson).wrapper }}
-          {{- $_ := unset $mapToMergeInto "_include" }}
-          {{- $_ := set $mapToMergeInto "_include" $joinedIncludes }}
-        {{- else }}
-          {{- $_ := unset $mapToMergeInto "_include" }}
-          {{- $_ := set $mapToMergeInto "_include" $valToMergeFrom }}
-        {{- end }}
-      {{- end }}
-
-    {{- else }}
-      {{- if not (hasKey $mapToMergeInto $keyToMergeFrom) }}
-        {{- $_ := set $mapToMergeInto $keyToMergeFrom $valToMergeFrom }}
-      {{- end }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "fl._concatLists" }}
-  {{- $lists := index . }}
-
-  {{- $result := list }}
-  {{- range $_, $list := $lists }}
-    {{- range $_, $list_elem := $list }}
-      {{- $result = append $result $list_elem }}
-    {{- end }}
-  {{- end }}
-  {{- dict "wrapper" $result | toJson }}
 {{- end }}
