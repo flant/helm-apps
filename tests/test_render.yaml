@@ -585,6 +585,20 @@ metadata:
     repo: ""
 data:
   "config": |
+    level1:
+      testMap:
+        testProd2: 2v
+      testMap2:
+        test: 2v
+        test2: 3v
+        test3: 3
+        testNestedMap:
+          nestedMap:
+            prod: 1
+            test: 1
+      testSlice:
+      - testProd
+      - testProd2
     overwrited: default value from values.yaml
     testIncludeVar: prod value from file
     testIncludeVarMustOverwrited: prod value from values.yaml
@@ -1172,7 +1186,7 @@ kind: Deployment
 metadata:
   name: "env-yaml-app"
   annotations:
-    checksum/config: "854d6e54107f849087f3bee5e705db1b4d8386420d8b18ab03e98402ec27aeb2"
+    checksum/config: "f0b89172b9c460ce9fe6c12abe9d5a02d3210d97827b134b7d04abf3c499c822"
     helm-apps/version: "TEST"
   labels:
     app: "env-yaml-app"
@@ -1188,7 +1202,7 @@ spec:
     metadata:
       name: "env-yaml-app"
       annotations:
-        checksum/config: "854d6e54107f849087f3bee5e705db1b4d8386420d8b18ab03e98402ec27aeb2"
+        checksum/config: "f0b89172b9c460ce9fe6c12abe9d5a02d3210d97827b134b7d04abf3c499c822"
       labels:
         app: "env-yaml-app"
         chart: "tests"
