@@ -266,7 +266,7 @@
 {{- $currentName := index . 3 }}
 {{- if kindIs "map" $current }}
 {{- if hasKey $current "_include_from_file" }}
-{{- $dict := $.Files.Get $current._include_from_file | fromYaml }}
+{{- $dict := $.Files.Get (include "apps-utils.tpl" (list $ $current._include_from_file)) | fromYaml }}
 {{- $currentDict := deepCopy $current}}
 {{- $_ := mergeOverwrite $dict $currentDict }}
 {{- $_ = mergeOverwrite $current $dict }}
@@ -275,7 +275,7 @@
 {{- if hasKey $current "_include_files" }}
 {{- $newInclude := list }}
 {{- range $_, $fileName := $current._include_files }}
-{{- $includeContent := $.Files.Get $fileName | fromYaml }}
+{{- $includeContent := $.Files.Get (include "apps-utils.tpl" (list $ $fileName)) | fromYaml }}
 {{- $includeName := sha256sum $fileName }}
 {{- $_ := set $.Values.global._includes $includeName $includeContent }}
 {{- $newInclude = append $newInclude $includeName }}
@@ -292,4 +292,10 @@
 {{- end }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{- define "apps-utils.tpl" }}
+{{- $ := index . 0 }}
+{{- $value := index . 1 }}
+{{- tpl $value  $ }}
 {{- end }}

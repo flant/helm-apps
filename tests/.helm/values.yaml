@@ -1951,7 +1951,7 @@ test-env-yaml:
           config:
             mountPath: /config
             content:
-              _include_files: ["config/test-include-files.yaml"]
+              _include_files: ['config/test-include-{{ print "files" }}.yaml']
               overwrited:
                 _default: default value from values.yaml
               testIncludeVar:
