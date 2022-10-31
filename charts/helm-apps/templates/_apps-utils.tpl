@@ -266,18 +266,22 @@
 {{- $currentName := index . 3 }}
 {{- if kindIs "map" $current }}
 {{- if hasKey $current "_include_from_file" }}
-{{- $dict := $.Files.Get (include "apps-utils.tpl" (list $ $current._include_from_file)) | fromYaml }}
+{{- $fn := include "apps-utils.tpl" (list $ $current._include_from_file) }}
+{{- $includeContent := $.Files.Get $fn | fromYaml }}
+{{- $_ := required (printf "Including file %s in _include_from_file emtty or has errors!" $fn) $includeContent }}
 {{- $currentDict := deepCopy $current}}
-{{- $_ := mergeOverwrite $dict $currentDict }}
-{{- $_ = mergeOverwrite $current $dict }}
+{{- $_ = mergeOverwrite $includeContent $currentDict }}
+{{- $_ = mergeOverwrite $current $includeContent }}
 {{- $_ = unset $current "_include_from_file"}}
 {{- end }}
 {{- if hasKey $current "_include_files" }}
 {{- $newInclude := list }}
 {{- range $_, $fileName := $current._include_files }}
-{{- $includeContent := $.Files.Get (include "apps-utils.tpl" (list $ $fileName)) | fromYaml }}
+{{- $fn := include "apps-utils.tpl" (list $ $fileName) }}
+{{- $includeContent := $.Files.Get $fn | fromYaml }}
+{{- $_ := required (printf "Including file %s in _include_files emtty or has errors!" $fn) $includeContent }}
 {{- $includeName := sha256sum $fileName }}
-{{- $_ := set $.Values.global._includes $includeName $includeContent }}
+{{- $_ = set $.Values.global._includes $includeName $includeContent }}
 {{- $newInclude = append $newInclude $includeName }}
 {{- end }}
 {{- if hasKey $current "_include" }}
