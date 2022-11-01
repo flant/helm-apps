@@ -20,18 +20,18 @@
 #### Вручную:
 * Добавить в .gitlab-ci.yml строку подключения библиотеки общих чартов
   ```bash
-     werf helm repo add --force-update  helm-apps https://alvnukov.github.io/helm-apps
+     werf helm repo add --force-update  helm-apps https://flant.github.io/helm-apps
   ```
   + к примеру так:
     ```yaml
     before_script:
     - type trdl && source $(trdl use werf ${WERF_VERSION:-1.2 ea})
     - type werf && source $(werf ci-env gitlab --as-file)
-    - werf helm repo add --force-update  helm-apps https://alvnukov.github.io/helm-apps
+    - werf helm repo add --force-update  helm-apps https://flant.github.io/helm-apps
     ```
     у себя на компьютере добавляем репозиторий helm-apps:
     ```yaml
-    werf helm repo add --force-update  helm-apps https://alvnukov.github.io/helm-apps
+    werf helm repo add --force-update  helm-apps https://flant.github.io/helm-apps
     ```
     и обновляем зависимости:
     ```yaml
