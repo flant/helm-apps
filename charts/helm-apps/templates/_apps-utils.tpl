@@ -200,6 +200,7 @@
 
 {{- define "apps-utils.init-library" }}
 {{- $ := . }}
+{{- include "apps-utils.includesFromFiles" $ }}
 {{- $_ := include "fl.expandIncludesInValues" (list $ $.Values) }}
 {{- include "apps-utils.findApps" $ }}
 ---
@@ -251,4 +252,54 @@
 
 {{- define "apps-utils.printPath" }}
 {{-   printf "\n---\n# Helm Apps Library: %s" (.CurrentPath | join ".") }}
+{{- end }}
+
+{{- define "apps-utils.includesFromFiles" }}
+{{- $_ := set $ "HelmAppsArgs" (dict "owner" . "current" .Values "currentName" "Values")}}
+{{- include "apps-utils._includesFromFiles" (list . . .Values "Values") }}
+{{- end }}
+
+{{- define "apps-utils._includesFromFiles" }}
+{{- $ := index . 0 }}
+{{- $owner := index . 1 }}
+{{- $current := index . 2 }}
+{{- $currentName := index . 3 }}
+{{- if kindIs "map" $current }}
+{{- if hasKey $current "_include_from_file" }}
+{{- $fn := include "apps-utils.tpl" (list $ $current._include_from_file) }}
+{{- $includeContent := $.Files.Get $fn | fromYaml }}
+{{- $_ := required (printf "Including file %s in _include_from_file emtty or has errors!" $fn) $includeContent }}
+{{- $currentDict := deepCopy $current}}
+{{- $_ = mergeOverwrite $includeContent $currentDict }}
+{{- $_ = mergeOverwrite $current $includeContent }}
+{{- $_ = unset $current "_include_from_file"}}
+{{- end }}
+{{- if hasKey $current "_include_files" }}
+{{- $newInclude := list }}
+{{- range $_, $fileName := $current._include_files }}
+{{- $fn := include "apps-utils.tpl" (list $ $fileName) }}
+{{- $includeContent := $.Files.Get $fn | fromYaml }}
+{{- $_ := required (printf "Including file %s in _include_files emtty or has errors!" $fn) $includeContent }}
+{{- $includeName := sha256sum $fileName }}
+{{- $_ = set $.Values.global._includes $includeName $includeContent }}
+{{- $newInclude = append $newInclude $includeName }}
+{{- end }}
+{{- if hasKey $current "_include" }}
+{{- $newInclude = concat $newInclude $current._include }}
+{{- end }}
+{{- $_ := set $current "_include" $newInclude }}
+{{- $_ = unset $current "_include_files"}}
+{{- end }}
+{{- range $k, $v :=  $current }}
+{{- if kindIs "map" $v }}
+{{- include "apps-utils._includesFromFiles" (list $ $current $v $k) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "apps-utils.tpl" }}
+{{- $ := index . 0 }}
+{{- $value := index . 1 }}
+{{- tpl $value  $ }}
 {{- end }}

@@ -117,7 +117,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: "hpa-app"
+      app: my-selector
   maxUnavailable: 15%
 ---
 # Helm Apps Library: apps-stateless.app-1.podDisruptionBudget
@@ -247,6 +247,21 @@ metadata:
     app: "test-app-2"
     chart: "tests"
     repo: ""
+---
+# Helm Apps Library: test-env-yaml.env-yaml-app.containers.test.secretEnvVars
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "envs-containers-env-yaml-app-test"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+type: Opaque
+data:
+  "TEST_APP_LEVEL1_TEST_ENV3": "ZGVmYXVsdCB2YWx1ZSBmcm9tIGVudlZhcnM="
 ---
 # Helm Apps Library: apps-stateless.app-1.initContainers.init-container-1.secret.conf
 apiVersion: v1
@@ -542,6 +557,54 @@ data:
   "secret.conf": "cGxhaW5UZXh0TGluZTEKcGxhaW5UZXh0TGluZTIK"
   "secret2.conf": "cGxhaW5UZXh0TGluZTEK"
 ---
+# Helm Apps Library: test-env-yaml.env-yaml-app.containers.test.configFiles.conf
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "config-containers-env-yaml-app-test-conf"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+data:
+  "conf": |
+    test
+---
+# Helm Apps Library: test-env-yaml.env-yaml-app.containers.test.configFilesYAML.config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "config-yaml-containers-env-yaml-app-test-config"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "env-yaml-app"
+    chart: "tests"
+    repo: ""
+data:
+  "config": |
+    level1:
+      testMap:
+        testProd2: 2v
+      testMap2:
+        test: 2v
+        test2: 3v
+        test3: 3
+        testNestedMap:
+          nestedMap:
+            prod: 1
+            test: 1
+      testSlice:
+      - testProd
+      - testProd2
+    overwrited: default value from values.yaml
+    testIncludeVar: prod value from file
+    testIncludeVarMustOverwrited: prod value from values.yaml
+    testValue: value from file
+    testValueWithDefault: default value from file
+---
 # Helm Apps Library: apps-stateless.app-1.initContainers.init-container-1.configFiles.nginx.conf
 apiVersion: v1
 kind: ConfigMap
@@ -721,6 +784,23 @@ data:
     configline2
   something.conf: |
     configline1
+binaryData:
+  test.gz: jdbkjbkjsdbkjdbjdsbljl
+---
+# Source: tests/templates/init-helm-apps-library.yaml
+# Helm Apps Library: apps-configmaps.configmap-2
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "configmap-2"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "configmap-2"
+    chart: "tests"
+    repo: ""
+data:
+  "nginx.conf": "configline1\nconfigline2 \n"
 ---
 # Source: tests/templates/init-helm-apps-library.yaml
 # Helm Apps Library: apps-pvcs.test-pvc
@@ -815,6 +895,24 @@ subjects:
   - kind: ServiceAccount
     name: test-app-2
     namespace: test-prod
+---
+# Helm Apps Library: test-hpa.hpa-app.service
+apiVersion: v1
+kind: Service
+metadata:
+  name: "hpa-app"
+  annotations:
+    helm-apps/version: "TEST"
+  labels:
+    app: "hpa-app"
+    chart: "tests"
+    repo: ""
+spec:
+  ports:
+    - name: http
+      port: 80
+  selector:
+    app: my-selector
 ---
 # Helm Apps Library: apps-stateless.app-1.service
 apiVersion: v1
@@ -1088,7 +1186,7 @@ kind: Deployment
 metadata:
   name: "env-yaml-app"
   annotations:
-    checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    checksum/config: "f0b89172b9c460ce9fe6c12abe9d5a02d3210d97827b134b7d04abf3c499c822"
     helm-apps/version: "TEST"
   labels:
     app: "env-yaml-app"
@@ -1104,7 +1202,7 @@ spec:
     metadata:
       name: "env-yaml-app"
       annotations:
-        checksum/config: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        checksum/config: "f0b89172b9c460ce9fe6c12abe9d5a02d3210d97827b134b7d04abf3c499c822"
       labels:
         app: "env-yaml-app"
         chart: "tests"
@@ -1122,8 +1220,25 @@ spec:
               value: "from envYAML"
             - name: "TESTAPP_LEVEL1_TESTENV4"
               value: "prod value from envVars"
+          envFrom:
+            - secretRef:
+                name: "envs-containers-env-yaml-app-test"
+          volumeMounts:
+            - name: "config-containers-env-yaml-app-test-conf"
+              subPath: "conf"
+              mountPath: "/config"
+            - name: "config-yaml-containers-env-yaml-app-test-config"
+              subPath: "config"
+              mountPath: "/config"
       imagePullSecrets:
         - name: registrysecret
+      volumes:
+        - name: "config-containers-env-yaml-app-test-conf"
+          configMap:
+            name: "config-containers-env-yaml-app-test-conf"
+        - name: "config-yaml-containers-env-yaml-app-test-config"
+          configMap:
+            name: "config-yaml-containers-env-yaml-app-test-config"
       priorityClassName: "production-medium"
   selector:
     matchLabels:
@@ -1212,7 +1327,7 @@ spec:
       priorityClassName: "production-medium"
   selector:
     matchLabels:
-      app: "hpa-app"
+      app: my-selector
   revisionHistoryLimit: 3
 ---
 # Source: tests/templates/init-helm-apps-library.yaml

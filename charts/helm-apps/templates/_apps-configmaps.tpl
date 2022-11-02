@@ -14,8 +14,26 @@
 apiVersion: v1
 kind: ConfigMap
 {{- include "apps-helpers.metadataGenerator" (list $ .) }}
+{{- $data :=  "" }}
+{{- with include "apps.generateConfigMapEnvVars" (list $ . .envVars) }}
+{{- $data = printf "%s\n%s" $data . | trim }}
+{{- end }}
+{{- if kindIs "map" .data }}
+{{- with include "apps.generateConfigMapData" (list $ . .data) }}
+{{- $data = printf "%s\n%s" $data . | trim }}
+{{- end }}
+{{- else }}
+{{- with include "fl.value" (list $ . .data) }}
+{{- $data = printf "%s\n%s" $data . | trim }}
+{{- end }}
+{{- end }}
+{{ with $data }}
 data:
-{{- include "apps.generateConfigMapEnvVars" (list $ . .envVars "envVars") | nindent 2 }}
-{{- include "fl.value" (list $ . .data) | nindent 2 }}
+{{- . | nindent 2 }}
+{{- end }}
+{{ with include "fl.value" (list $ . .binaryData) }}
+binaryData:
+{{- . | nindent 2 }}
+{{- end }}
 {{- end }}
 {{- end }}
