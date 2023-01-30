@@ -93,7 +93,7 @@
 {{-             end }}
 {{-         else }}
 {{-         if ne (include "fl.value" (list $ $relativeScope (index $relativeScope .))) "" }}
-{{ $specName }}: {{ include "fl.isTrue" (list $ $relativeScope (index $relativeScope .)) }}
+{{ $specName }}: {{ index $relativeScope . }}
 {{-         end }}
 {{-         end }}
 {{-     end }}
