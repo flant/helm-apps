@@ -1091,6 +1091,7 @@ apps-stateless:
     volumes: |
       - name: cache-volume
         emptyDir: {}
+    automountServiceAccountToken: false
 
     ## Список контейнеров приложения. Можно указать несколько.
     containers:
@@ -1390,6 +1391,7 @@ apps-stateless:
   nginx:
     _include: ["apps-stateless-defaultApp"]
     replicas: 1
+    automountServiceAccountToken: true
     containers:
       nginx:
         image:

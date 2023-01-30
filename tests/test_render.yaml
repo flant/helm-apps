@@ -1499,6 +1499,7 @@ spec:
       dnsPolicy: "ClusterFirstWithHostNet"
       priorityClassName: "production-medium"
       terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
       hostNetwork: true
   selector:
     matchLabels:
@@ -1599,6 +1600,7 @@ spec:
           configMap:
             name: "config-containers-nginx-nginx-default-conf"
       priorityClassName: "production-medium"
+      automountServiceAccountToken: true
   selector:
     matchLabels:
       app: "nginx"
