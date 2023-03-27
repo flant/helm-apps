@@ -302,7 +302,7 @@ data: {{ include "fl.generateSecretEnvVars" (list $ . .secretEnvVars) | trim | n
 {{-         range $_, $configFile := $.CurrentContainer.configFiles }}
 {{-           print (include "fl.value" (list $ . $configFile.content)) }}
 {{-         end }}
-{{-         range $_, $configFile :=  $.CurrentContainer.secretFiles }}
+{{-         range $_, $configFile :=  $.CurrentContainer.secretConfigFiles }}
 {{-           print (include "fl.value" (list $ . $configFile.content)) }}
 {{-         end }}
 {{-         range $_, $configFile :=  $.CurrentContainer.configFilesYAML }}
