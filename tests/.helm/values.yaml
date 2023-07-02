@@ -54,7 +54,7 @@ apps-configmaps:
     data:
       nginx.conf: |
         configline1
-        configline2 
+        configline2
 
 ## Имя чарта. Ниже перечисляются CronJob'ы для развертывания.
 # Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
@@ -1449,42 +1449,6 @@ apps-stateless:
           staticTag: "3"
         command: |
           - tail
-apps-custom-prometheus-rules:
-  test-rule:
-    _include: ["apps-default-library-app"]
-    groups:
-      test-group:
-        alerts:
-          test-alert:
-            isTemplate: false
-            content: |
-              for: 5m
-              expr: sum(kafka_consumergroup_lag{}) by (consumergroup, topic) > 10000
-              labels:
-                severity_level: "4"
-              annotations:
-                description: "Too many unprocessed messages in sentry in kafka in a topic"
-                summary: |-
-                  Слишком много не обработанных сообщений в топиках kafka sentry
-                  Проверить работу consumer топика
-                plk_markup_format: markdown
-                plk_protocol_version: "1"
-                plk_labels_as_annotations: pod,instance
-          sentry-kafka-lag:
-            isTemplate: true
-            content: |
-              for: 5m
-              expr: sum(kafka_consumergroup_lag{}) by (consumergroup, topic) > 50000
-              labels:
-                severity_level: "3"
-              annotations:
-                description: "Too many unprocessed messages in sentry in kafka in a topic"
-                summary: |-
-                  Слишком много не обработанных сообщений в топиках kafka sentry
-                  Проверить работу consumer топика
-                plk_markup_format: markdown
-                plk_protocol_version: "1"
-                plk_labels_as_annotations: pod,instance
 
 apps-limit-range:
   mem-dafault:
@@ -1557,150 +1521,6 @@ apps-certificates:
     hosts: |
       - "example-1.org"
       - "example-2.org"
-apps-kafka-strimzi:
-  test-kafka:
-    kafka:
-      _include: ["base-defaultApp-stateful"]
-      brokers:
-        host:
-          _default: kafka-sentry-test-kafka-bootstrap
-          prod: kafka-sentry-prod-kafka-bootstrap
-        hosts:
-          _default:
-          - kafka-sentry-test-kafka-brokers
-          prod:
-          - kafka-sentry-prod-kafka-brokers
-        port:
-          _default: 9092
-      version:
-        _default: 2.7.0
-      replicas:
-        _default: 1
-        prod: 3
-      resources:
-        requests:
-          mcpu:
-            _default: 100
-            prod: 1000
-          memoryMb:
-            _default: 768
-            prod: 4096
-        limits:
-          memoryMb:
-            _default: 768
-            prod: 4096
-      jvmOptions:
-        _default: |
-          -Xms: 512m
-          -Xmx: 512m
-        prod: |
-          -Xms: 2048m
-          -Xmx: 2048m
-      storage:
-        size:
-          _default: 5Gi
-          prod: 100Gi
-
-      ui:
-        ingress:
-          url:
-            prod: sentry-kafka.{{ include "fl.value" (list $ . $.Values.global.baseUrl) }}
-        dex:
-          allowedGroups:
-            _default:
-            - hypermetrica-external-admins
-        resources:
-          requests:
-            mcpu: 100
-            memoryMb: 512
-          limits:
-            memoryMb: 512
-        memory: 512Mi
-        _include: ["base-defaultApp"]
-      exporter:
-        _include: ["base-defaultApp-stateful"]
-        resources:
-          requests:
-            mcpu: 200
-            memoryMb: 128
-          limits:
-            memoryMb: 128
-      entityOperator:
-        _include: ["base-defaultApp-stateful"]
-        topicOperator:
-          resources:
-            requests:
-              mcpu: 50
-              memoryMb: 256
-            limits:
-              memoryMb: 256
-        userOperator:
-          resources:
-            requests:
-              mcpu: 50
-              memoryMb: 256
-            limits:
-              memoryMb: 256
-      topics:
-        snuba-commit-log:
-          _include: ["default-kafkaTopic"]
-        cdc:
-          _include: ["default-kafkaTopic"]
-        event-replacements:
-          _include: ["default-kafkaTopic"]
-        event-replacements-legacy:
-          _include: ["default-kafkaTopic"]
-        events:
-          _include: ["default-kafkaTopic"]
-          partitions:
-            _default: 1
-          replicas:
-            _default: 3
-        events-subscription-results:
-          _include: ["default-kafkaTopic"]
-        ingest-attachments:
-          _include: ["default-kafkaTopic"]
-        ingest-events:
-          _include: ["default-kafkaTopic"]
-          partitions:
-            _default: 6
-        ingest-metrics:
-          _include: ["default-kafkaTopic"]
-        ingest-sessions:
-          _include: ["default-kafkaTopic"]
-        ingest-transactions:
-          _include: ["default-kafkaTopic"]
-        outcomes:
-          _include: ["default-kafkaTopic"]
-        snuba-queries:
-          _include: ["default-kafkaTopic"]
-        transactions-subscription-results:
-          _include: ["default-kafkaTopic"]
-      zookeeper:
-        _include: ["base-defaultApp-stateful"]
-        replicas:
-          _default: 1
-          prod: 3
-        resources:
-          requests:
-            mcpu: 500
-            memoryMb: 1024
-          limits:
-            memoryMb: 1024
-        jvmOptions:
-          _default: |
-            -Xms: 512m
-            -Xmx: 512m
-        metricsConfig: |
-          type: jmxPrometheusExporter
-          valueFrom:
-            configMapKeyRef:
-              name: kafka-metrics
-              key: zookeeper-metrics-config.yml
-        storage:
-          size:
-            _default: 1Gi
-            prod: 10Gi
 
 fromSecretsEnvVars-test:
   # __GroupVars__ указываает что блок является группой и будет обрабатываться библиотекой helm-apps,
@@ -1906,7 +1726,7 @@ apps-services:
         port: 80
     selector: |
       app: test-app
-      
+
 test-env-yaml:
   __GroupVars__:
     type: apps-stateless

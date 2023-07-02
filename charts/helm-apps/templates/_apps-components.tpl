@@ -170,7 +170,6 @@ spec:
 {{-             $_ = set $ "CurrentApp" . }}
 ---
 {{- include "apps-utils.printPath" $ }}
-{{- include "apps-deckhouse-metrics.render" $ }}
 {{-             $_ = set $ "CurrentApp" $currentApp }}
 {{-           end }}
 {{-           include "apps-utils.leaveScope" $ }}
