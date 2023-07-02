@@ -1652,7 +1652,7 @@ spec:
   replicas: 2
 ---
 # Helm Apps Library: test-hpa.hpa-app.horizontalPodAutoscaler
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: "hpa-app"
@@ -1701,7 +1701,7 @@ spec:
           averageUtilization: 30
 ---
 # Helm Apps Library: apps-stateless.app-1.horizontalPodAutoscaler
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: "app-1"
