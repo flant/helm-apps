@@ -35,7 +35,7 @@ kind: Deployment
 spec:
   {{- $specs := dict }}
   {{- $_ = set $specs "Numbers" (list "minReadySeconds" "progressDeadlineSeconds" "revisionHistoryLimit" "replicas") }}
-  {{- $_ = set $specs "Maps" (list "securityContext" "strategy" "apps-helpers.podTemplate" "apps-specs.selector") }}
+  {{- $_ = set $specs "Maps" (list "strategy" "apps-helpers.podTemplate" "apps-specs.selector") }}
   {{- include "apps-utils.generateSpecs" (list $ . $specs) | indent 2 }}
 
 {{- $_ = unset . "__annotations__" }}
