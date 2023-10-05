@@ -36,7 +36,7 @@ kind: StatefulSet
 spec:
   {{- /* https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#statefulset-v1-apps */ -}}
   {{- $specs := dict }}
-  {{- $_ = set $specs "Maps" (list "securityContext" "apps-helpers.podTemplate" "apps-specs.selector" "persistentVolumeClaimRetentionPolicy" "updateStrategy") }}
+  {{- $_ = set $specs "Maps" (list "apps-helpers.podTemplate" "apps-specs.selector" "persistentVolumeClaimRetentionPolicy" "updateStrategy") }}
   {{- $_ = set $specs "Numbers" (list "replicas" "minReadySeconds" "revisionHistoryLimit" "progressDeadlineSeconds") }}
   {{- $_ = set $specs "Strings" (list "apps-specs.serviceName" "podManagementPolicy") }}
   {{- $_ = set $specs "Lists" (list "apps-specs.volumeClaimTemplates") }}
