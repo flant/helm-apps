@@ -54,7 +54,7 @@ apps-configmaps:
     data:
       nginx.conf: |
         configline1
-        configline2 
+        configline2
 
 ## Имя чарта. Ниже перечисляются CronJob'ы для развертывания.
 # Указано в .helm/requirements.yaml в репозитории приложения в ключах dependencies.name или dependencies.alias.
@@ -679,6 +679,12 @@ apps-stateful:
     # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
     annotations: |
       testAnnotation: "testVal"
+    #  Pod securityContext пробрасываются как есть https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+    # securityContext: |
+    #   runAsUser: 1000
+    #   runAsGroup: 3000
+    #   fsGroup: 2000
+
     ## Дополнительные лейблы для всех ресурсов, создаваемых чартом.
     # По умолчанию уже генерируется стандартный набор лейблов, поэтому указывать дополнительные обычно не требуется.
     # Пробрасываются как есть в metadata.labels всех ресурсов.
@@ -1024,6 +1030,11 @@ apps-stateless:
     # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
     annotations: |
       testAnnotation: "testVal"
+    #  Pod securityContext пробрасываются как есть https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+    # securityContext: |
+    #   runAsUser: 1000
+    #   runAsGroup: 3000
+    #   fsGroup: 2000
     ## Дополнительные лейблы для всех ресурсов, создаваемых чартом.
     # По умолчанию уже генерируется стандартный набор лейблов, поэтому указывать дополнительные обычно не требуется.
     # Пробрасываются как есть в metadata.labels всех ресурсов.
@@ -1906,7 +1917,7 @@ apps-services:
         port: 80
     selector: |
       app: test-app
-      
+
 test-env-yaml:
   __GroupVars__:
     type: apps-stateless
